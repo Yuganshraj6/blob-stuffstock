@@ -8,7 +8,7 @@
 ### 🌐 Live App
 Visit the main application: **[StuffStock](https://stuffstock.edgeone.dev)**
 # or
-**[[StuffStock](https://stuffstock.edgeone.dev)](https://stuffstock.edgeone.dev)**
+**[stuffstock.edgeone.dev](https://stuffstock.edgeone.dev)**
 
 ### 📂 About This Repository
 This repository hosts raw blob data, cached assets, and storage files powering **StuffStock by OrbitOmen** — a batch downloader and manager for Minecraft mods, plugins, resource packs, shaders, and data packs.
