@@ -1,0 +1,24 @@
+options:
+    prefix: <#a6ffcb>&lRTP <#888888>» <#cfc3e6>
+    max-range: 3000
+    cooldown: 60 seconds
+
+command /rtp:
+    aliases: /wild, /wilderness
+    description: Teleport to a random safe location in the wilderness.
+    trigger:
+        set {_uuid} to player's uuid
+        if {rtp::last::%{_uuid}%} is set:
+            if difference between {rtp::last::%{_uuid}%} and now < {@cooldown}:
+                set {_rem} to {@cooldown} - (difference between {rtp::last::%{_uuid}%} and now)
+                send "{@prefix}<#ff6b8f>Please wait <#ffd700>%{_rem}% <#ff6b8f>before using /rtp again." to player
+                stop
+        set {rtp::last::%{_uuid}%} to now
+        send "{@prefix}Searching for a safe wilderness landing zone..." to player
+        set {_x} to a random integer between -{@max-range} and {@max-range}
+        set {_z} to a random integer between -{@max-range} and {@max-range}
+        set {_w} to player's world
+        set {_target} to highest block at location({_x}, 0, {_z}, {_w})
+        teleport player to block above {_target}
+        send "{@prefix}Teleported safely to <#a6ffcb>%{_x}%, %y-coordinate of {_target}%, %{_z}%<#cfc3e6>!" to player
+        play sound "entity.enderman.teleport" with volume 1 and pitch 1.2 at player

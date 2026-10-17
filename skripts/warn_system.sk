@@ -1,0 +1,13 @@
+options:
+    prefix: <#ff6b8f>&lWARN <#888888>» <#cfc3e6>
+
+command /warn <player> <text>:
+    permission: staff.warn
+    description: Warn a player for infractions.
+    trigger:
+        add 1 to {warns::%arg-1's uuid%}
+        set {_count} to {warns::%arg-1's uuid%}
+        broadcast "{@prefix}<#fcf4ff>%arg-1% <#cfc3e6>was warned for: <#ff6b8f>%arg-2% <#888888>(%{_count}%/3)"
+        if {_count} >= 3:
+            kick arg-1 due to "You reached 3 server warnings!"
+            delete {warns::%arg-1's uuid%}

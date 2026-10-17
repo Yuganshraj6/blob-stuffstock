@@ -1,0 +1,18 @@
+options:
+    prefix: <#ff6b8f>&lLOCKDOWN <#888888>» <#cfc3e6>
+
+command /lockdown [<text>]:
+    permission: admin.lockdown
+    description: Toggle server lockdown.
+    trigger:
+        if {lockdown::active} is true:
+            set {lockdown::active} to false
+            broadcast "{@prefix}<#a6ffcb>Server lockdown lifted."
+        else:
+            set {lockdown::active} to true
+            broadcast "{@prefix}<#ff6b8f>&lSERVER IS NOW UNDER LOCKDOWN!"
+
+on connect:
+    if {lockdown::active} is true:
+        if player does not have permission "lockdown.bypass":
+            kick player due to "Server is currently under lockdown for maintenance."

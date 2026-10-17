@@ -1,0 +1,4 @@
+every 5 seconds:
+    loop all players:
+        # Action bar status display
+        send action bar "<#ffd700>&lStuffStock SMP <#888888>| <#cfc3e6>Online: %number of all players%" to loop-player

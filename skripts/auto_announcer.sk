@@ -1,0 +1,4 @@
+every 15 minutes:
+    broadcast " "
+    broadcast "<#a6ffcb>&lANNOUNCEMENT <#888888>» <#cfc3e6>Join our official Discord & read rules at <#ffd700>https://stuffstock.edgeone.dev"
+    broadcast " "

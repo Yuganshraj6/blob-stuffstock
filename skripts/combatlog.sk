@@ -1,0 +1,65 @@
+# ==============================================================================
+# Script: combatlog.sk
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Prevents players from disconnecting, executing commands, or
+#              glitching out during PvP combat.
+# Dependencies: Skript 2.8+ (Vanilla Skript)
+# ==============================================================================
+
+options:
+    prefix: <#ff6b8f>&lCOMBAT <#888888>» <#cfc3e6>
+    tag-duration: 15 seconds
+
+# Function to tag a player in combat
+function tagCombat(p: player, enemy: player):
+    set {_uuid} to {_p}'s uuid
+    set {_now} to now
+    
+    # If not already tagged, alert the player
+    if {combat::tagged::%{_uuid}%} is not set:
+        send "{@prefix}You are now in combat with <#ff6b8f>%{_enemy}%<#cfc3e6>! Do not log out for <#ff6b8f>15s<#cfc3e6>." to {_p}
+        play sound "entity.wither.hurt" with volume 0.5 and pitch 1.8 at {_p}
+        
+    set {combat::tagged::%{_uuid}%} to true
+    set {combat::time::%{_uuid}%} to {_now}
+
+# Damage event: fires when one player attacks another
+on damage:
+    attacker is a player
+    victim is a player
+    tagCombat(attacker, victim)
+    tagCombat(victim, attacker)
+
+# Prevent restricted commands during combat
+on command:
+    set {_uuid} to player's uuid
+    if {combat::tagged::%{_uuid}%} is true:
+        if difference between {combat::time::%{_uuid}%} and now < {@tag-duration}:
+            set {_cmd} to first element of (arguments split at " ")
+            # Allow basic harmless commands if needed, block teleportation / spawns
+            if command is "spawn" or "home" or "tp" or "tpa" or "warp" or "back" or "pay" or "shop":
+                cancel event
+                send "{@prefix}<#ff6b8f>You cannot use this command while in combat!" to player
+                play sound "block.note_block.bass" with volume 1 and pitch 0.6 at player
+        else:
+            delete {combat::tagged::%{_uuid}%}
+            delete {combat::time::%{_uuid}%}
+
+# Combat logger punishment: if player disconnects during combat
+on quit:
+    set {_uuid} to player's uuid
+    if {combat::tagged::%{_uuid}%} is true:
+        if difference between {combat::time::%{_uuid}%} and now < {@tag-duration}:
+            kill player
+            broadcast "{@prefix}<#ff6b8f>%player% <#cfc3e6>logged out while in combat and was eliminated!"
+        delete {combat::tagged::%{_uuid}%}
+        delete {combat::time::%{_uuid}%}
+
+# Clear combat tag on death
+on death of player:
+    set {_uuid} to victim's uuid
+    if {combat::tagged::%{_uuid}%} is true:
+        delete {combat::tagged::%{_uuid}%}
+        delete {combat::time::%{_uuid}%}
+        send "{@prefix}You are no longer in combat." to victim

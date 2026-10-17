@@ -1,0 +1,21 @@
+options:
+    prefix: <#ff6b8f>&lLIFESTEAL <#888888>» <#cfc3e6>
+    max-hearts: 20
+    min-hearts: 1
+
+on death of player:
+    attacker is a player
+    victim is a player
+    
+    # Steal 1 heart
+    set {_vMax} to max health of victim
+    set {_aMax} to max health of attacker
+    
+    if {_vMax} > {@min-hearts}:
+        set max health of victim to {_vMax} - 1
+        send "{@prefix}You lost <#ff6b8f>1 heart<#cfc3e6>! Max health is now %max health of victim%." to victim
+        
+    if {_aMax} < {@max-hearts}:
+        set max health of attacker to {_aMax} + 1
+        send "{@prefix}You stole <#a6ffcb>1 heart <#cfc3e6>from %victim%! Max health is now %max health of attacker%." to attacker
+        play sound "entity.player.levelup" with volume 1 and pitch 1.8 at attacker

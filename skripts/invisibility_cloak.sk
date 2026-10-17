@@ -1,0 +1,5 @@
+on sneak toggle:
+    player is not sneaking
+    name of player's chestplate contains "Shadow Cloak"
+    apply invisibility 1 without particles to player for 15 seconds
+    send "<#c3a6ff>&lCLOAK <#888888>» <#cfc3e6>Entered shadow cloak invisibility!" to player

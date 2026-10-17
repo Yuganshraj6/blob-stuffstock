@@ -1,0 +1,5 @@
+on fish:
+    if state is in ground:
+        set {_v} to vector between player and hook
+        set velocity of player to {_v}
+        play sound "entity.bat.takeoff" with volume 1 and pitch 1.5 at player

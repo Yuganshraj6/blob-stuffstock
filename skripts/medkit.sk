@@ -1,0 +1,6 @@
+on right click with paper:
+    name of player's tool contains "First Aid Bandage"
+    remove 1 of player's tool from player's inventory
+    heal player by 3 hearts
+    send "<#a6ffcb>&lMEDKIT <#888888>» <#cfc3e6>Healed 3 hearts!" to player
+    play sound "entity.player.levelup" with volume 0.8 and pitch 1.5 at player

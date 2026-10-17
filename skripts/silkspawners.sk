@@ -1,0 +1,7 @@
+on break of spawner:
+    set {_tool} to player's tool
+    if {_tool} is any pickaxe:
+        if {_tool} has silk touch:
+            cancel drops
+            drop 1 of spawner at event-location
+            send "<#a6ffcb>&lSPAWNER <#888888>» <#cfc3e6>Spawner retrieved safely!" to player

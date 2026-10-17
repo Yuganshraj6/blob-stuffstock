@@ -1,0 +1,13 @@
+options:
+    prefix: <#c3a6ff>&lSTAFF <#888888>» <#cfc3e6>
+
+command /staff:
+    permission: staff.mode
+    description: Toggle Staff Duty Mode.
+    trigger:
+        if {staff::active::%player's uuid%} is true:
+            delete {staff::active::%player's uuid%}
+            send "{@prefix}Exited staff mode." to player
+        else:
+            set {staff::active::%player's uuid%} to true
+            send "{@prefix}Entered staff duty mode." to player

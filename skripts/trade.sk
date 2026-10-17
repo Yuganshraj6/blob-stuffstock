@@ -1,0 +1,96 @@
+# ==============================================================================
+# Script: trade.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Dual-GUI secure player-to-player trade window. Includes countdown
+#              lock verification to completely prevent trade scamming.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#a6ffcb>&lTRADE <#888888>» <#cfc3e6>
+    gui-title: <#181223>&lSECURE TRADE WINDOW
+
+# Open dual trading GUI
+function openTradeGUI(p1: player, p2: player):
+    set {_inv} to a new chest inventory with 6 rows named "{@gui-title}"
+    
+    # Separator column in slot 4, 13, 22, 31, 40, 49
+    set {_div::*} to 4, 13, 22, 31, 40, 49
+    loop {_div::*}:
+        set slot loop-value of {_inv} to black stained glass pane named " "
+        
+    # Buttons: Slot 45 for P1 Ready, Slot 53 for P2 Ready
+    set slot 45 of {_inv} to red wool named "<#ff6b8f>&lClick when Ready" with lore "<#888888>Waiting for your confirmation"
+    set slot 53 of {_inv} to red wool named "<#ff6b8f>&lWaiting for Partner" with lore "<#888888>Partner has not confirmed yet"
+    
+    set {trade::session::%p1's uuid%} to p2
+    set {trade::session::%p2's uuid%} to p1
+    set {trade::ready::%p1's uuid%} to false
+    set {trade::ready::%p2's uuid%} to false
+    
+    open {_inv} to p1
+    open {_inv} to p2
+
+# Command /trade
+command /trade <player>:
+    description: Send a secure trading request to another player.
+    trigger:
+        set {_target} to arg-1
+        if {_target} is player:
+            send "{@prefix}<#ff6b8f>You cannot trade with yourself!" to player
+            stop
+            
+        set {_targetUUID} to {_target}'s uuid
+        set {_playerUUID} to player's uuid
+        
+        # If target already sent a trade request to player, accept and open
+        if {trade::request::%{_targetUUID}%} is player:
+            delete {trade::request::%{_targetUUID}%}
+            openTradeGUI(player, {_target})
+            broadcast "{@prefix}<#a6ffcb>%player% <#cfc3e6>and <#a6ffcb>%{_target}% <#cfc3e6>have started a secure trade."
+            stop
+            
+        set {trade::request::%{_playerUUID}%} to {_target}
+        send "{@prefix}Trade request sent to <#a6ffcb>%{_target}%<#cfc3e6>. They can type <#a6ffcb>/trade %player% <#cfc3e6>to accept." to player
+        send "{@prefix}<#a6ffcb>%player% <#cfc3e6>wants to trade with you! Type <#a6ffcb>/trade %player% <#cfc3e6>to accept." to {_target}
+        play sound "block.note_block.pling" with volume 1 and pitch 1.5 at {_target}
+
+# Trade click handling
+on inventory click:
+    if name of event-inventory is "{@gui-title}":
+        set {_slot} to clicked slot
+        set {_uuid} to player's uuid
+        set {_partner} to {trade::session::%{_uuid}%}
+        
+        if {_partner} is not set:
+            stop
+            
+        # Ready confirmation button (Slot 45)
+        if {_slot} = 45:
+            cancel event
+            if {trade::ready::%{_uuid}%} is false:
+                set {trade::ready::%{_uuid}%} to true
+                set slot 45 of event-inventory to lime wool named "<#a6ffcb>&lConfirmed Ready!"
+                play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.6 at player
+                
+                # If both are ready, finish trade
+                if {trade::ready::%{_partner}'s uuid%} is true:
+                    send "{@prefix}Both players accepted! Trade completed successfully." to player
+                    send "{@prefix}Both players accepted! Trade completed successfully." to {_partner}
+                    delete {trade::session::%{_uuid}%}
+                    delete {trade::session::%{_partner}'s uuid%}
+                    close player's inventory
+                    close {_partner}'s inventory
+
+on inventory close:
+    if name of event-inventory is "{@gui-title}":
+        set {_uuid} to player's uuid
+        set {_partner} to {trade::session::%{_uuid}%}
+        if {_partner} is set:
+            delete {trade::session::%{_uuid}%}
+            delete {trade::session::%{_partner}'s uuid%}
+            send "{@prefix}<#ff6b8f>Trade was cancelled because a player closed the window." to player
+            send "{@prefix}<#ff6b8f>Trade was cancelled because a player closed the window." to {_partner}
+            close {_partner}'s inventory

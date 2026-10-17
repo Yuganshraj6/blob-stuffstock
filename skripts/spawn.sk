@@ -1,0 +1,63 @@
+# ==============================================================================
+# Script: spawn.sk
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Server spawn system with teleport warmup, cancel on movement,
+#              and first-join auto-teleport.
+# Dependencies: Skript 2.8+ (Vanilla Skript)
+# ==============================================================================
+
+options:
+    prefix: <#ffb3dd>&lSPAWN <#888888>» <#cfc3e6>
+    warmup: 3 seconds
+
+# --- Command: /setspawn (Admin) ---
+command /setspawn:
+    permission: spawn.admin
+    permission message: {@prefix}<#ff6b8f>You do not have permission to set spawn.
+    description: Set the global server spawn point.
+    trigger:
+        set {spawn::location} to player's location
+        send "{@prefix}Spawn location updated to your current position!" to player
+        play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.2 at player
+
+# --- Command: /spawn ---
+command /spawn:
+    description: Teleport to the server spawn point.
+    trigger:
+        if {spawn::location} is not set:
+            send "{@prefix}<#ff6b8f>Spawn location has not been set yet!" to player
+            stop
+            
+        # Bypass warmup if admin
+        if player has permission "spawn.bypass":
+            teleport player to {spawn::location}
+            send "{@prefix}Teleported to spawn!" to player
+            play sound "entity.enderman.teleport" with volume 1 and pitch 1 at player
+            stop
+            
+        send "{@prefix}Teleporting to spawn in <#ffb3dd>{@warmup}<#cfc3e6>... Don't move!" to player
+        
+        set {_startLoc} to player's location
+        set {_waited} to 0
+        while {_waited} < 3:
+            wait 1 second
+            if distance between player's location and {_startLoc} > 0.5:
+                send "{@prefix}<#ff6b8f>Teleport cancelled because you moved!" to player
+                play sound "entity.villager.no" with volume 1 and pitch 1 at player
+                stop
+            add 1 to {_waited}
+            
+        teleport player to {spawn::location}
+        send "{@prefix}Welcome to spawn!" to player
+        play sound "entity.enderman.teleport" with volume 1 and pitch 1 at player
+
+# Teleport player to spawn upon first joining the server
+on first join:
+    if {spawn::location} is set:
+        teleport player to {spawn::location}
+
+# Optional: Respawn players at spawn point when they die
+on respawn:
+    if {spawn::location} is set:
+        set respawn location to {spawn::location}

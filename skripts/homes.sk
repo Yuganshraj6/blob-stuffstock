@@ -1,0 +1,114 @@
+# ==============================================================================
+# Script: homes.sk
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Multi-home teleportation system with permissions and teleport warmup.
+# Dependencies: Skript 2.8+ (Vanilla Skript, no addons required)
+# ==============================================================================
+
+options:
+    prefix: <#ffb3dd>&lHOMES <#888888>» <#cfc3e6>
+    warmup: 3 seconds
+    default-max-homes: 3
+    vip-max-homes: 5
+    mvp-max-homes: 10
+
+# Calculate maximum homes for a player
+function getMaxHomes(p: player) :: integer:
+    if {_p} has permission "homes.unlimited":
+        return 999
+    else if {_p} has permission "homes.mvp":
+        return {@mvp-max-homes}
+    else if {_p} has permission "homes.vip":
+        return {@vip-max-homes}
+    return {@default-max-homes}
+
+# --- Command: /sethome ---
+command /sethome [<text>]:
+    description: Set a named home at your current location.
+    usage: /sethome [name]
+    trigger:
+        set {_name} to arg-1
+        if {_name} is not set:
+            set {_name} to "home"
+        
+        set {_name} to lower text of {_name}
+        
+        # Check maximum homes limit
+        set {_uuid} to player's uuid
+        set {_count} to size of {homes::%{_uuid}%::*}
+        set {_max} to getMaxHomes(player)
+        
+        if {homes::%{_uuid}%::%{_name}%} is not set:
+            if {_count} >= {_max}:
+                send "{@prefix}<#ff6b8f>You reached your maximum limit of <#ffb3dd>%{_max}% <#ff6b8f>homes!" to player
+                stop
+        
+        set {homes::%{_uuid}%::%{_name}%} to player's location
+        send "{@prefix}Home <#ffb3dd>%{_name}% <#cfc3e6>has been set!" to player
+        play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.2 at player
+
+# --- Command: /delhome ---
+command /delhome <text>:
+    description: Delete one of your existing homes.
+    usage: /delhome <name>
+    trigger:
+        set {_name} to lower text of arg-1
+        set {_uuid} to player's uuid
+        
+        if {homes::%{_uuid}%::%{_name}%} is not set:
+            send "{@prefix}<#ff6b8f>Home <#ffb3dd>%{_name}% <#ff6b8f>does not exist." to player
+            stop
+            
+        delete {homes::%{_uuid}%::%{_name}%}
+        send "{@prefix}Home <#ffb3dd>%{_name}% <#cfc3e6>was deleted." to player
+        play sound "block.note_block.bass" with volume 1 and pitch 0.8 at player
+
+# --- Command: /home ---
+command /home [<text>]:
+    description: Teleport to one of your homes.
+    usage: /home [name]
+    trigger:
+        set {_name} to arg-1
+        if {_name} is not set:
+            set {_name} to "home"
+        set {_name} to lower text of {_name}
+        set {_uuid} to player's uuid
+        
+        if {homes::%{_uuid}%::%{_name}%} is not set:
+            send "{@prefix}<#ff6b8f>Home <#ffb3dd>%{_name}% <#ff6b8f>was not found. Type <#ffb3dd>/homes <#ff6b8f>to see your list." to player
+            stop
+            
+        set {_target} to {homes::%{_uuid}%::%{_name}%}
+        set {_startLoc} to player's location
+        
+        send "{@prefix}Teleporting to <#ffb3dd>%{_name}% <#cfc3e6>in <#ffb3dd>{@warmup}<#cfc3e6>... Don't move!" to player
+        
+        set {_waited} to 0
+        while {_waited} < 3:
+            wait 1 second
+            if distance between player's location and {_startLoc} > 0.5:
+                send "{@prefix}<#ff6b8f>Teleport cancelled because you moved!" to player
+                play sound "entity.villager.no" with volume 1 and pitch 1 at player
+                stop
+            add 1 to {_waited}
+            
+        teleport player to {_target}
+        send "{@prefix}Teleported to <#ffb3dd>%{_name}%<#cfc3e6>!" to player
+        play sound "entity.enderman.teleport" with volume 1 and pitch 1 at player
+
+# --- Command: /homes ---
+command /homes:
+    description: View all your saved homes.
+    trigger:
+        set {_uuid} to player's uuid
+        set {_list::*} to indices of {homes::%{_uuid}%::*}
+        
+        if size of {_list::*} = 0:
+            send "{@prefix}You have no homes set. Use <#ffb3dd>/sethome <name><#cfc3e6>." to player
+            stop
+            
+        set {_max} to getMaxHomes(player)
+        set {_joined} to join {_list::*} with "<#888888>, <#ffb3dd>"
+        send "{@prefix}Your homes (<#ffb3dd>%size of {_list::*}%/%{_max}%<#cfc3e6>):" to player
+        send "  <#ffb3dd>%{_joined}%" to player

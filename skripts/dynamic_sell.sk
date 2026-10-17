@@ -1,0 +1,195 @@
+# ==============================================================================
+# Script: dynamic_sell.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: DonutSMP-style dynamic pricing engine. Sell hand or full inventory
+#              for ANY item. Heavy selling lowers item market value toward a floor;
+#              prices naturally recover over time.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffd700>&lSELL <#888888>» <#cfc3e6>
+    saturation-threshold: 2500 # Number of units sold before price reaches floor
+    decay-percent: 0.15 # 15% price recovery every decay cycle
+    decay-interval: 10 minutes
+
+# --- Default Base Prices & Min Price Floor Configuration ---
+function initDynamicPrices():
+    # Farming
+    registerDynamicItem("sugarcane", 8.0, 1.5)
+    registerDynamicItem("wheat", 5.0, 1.0)
+    registerDynamicItem("carrot", 4.0, 0.8)
+    registerDynamicItem("potato", 4.0, 0.8)
+    registerDynamicItem("nether_wart", 12.0, 2.5)
+    registerDynamicItem("cactus", 6.0, 1.2)
+    registerDynamicItem("pumpkin", 10.0, 2.0)
+    registerDynamicItem("melon_slice", 2.0, 0.4)
+
+    # Mining & Ores
+    registerDynamicItem("coal", 4.0, 1.0)
+    registerDynamicItem("raw_iron", 15.0, 3.0)
+    registerDynamicItem("iron_ingot", 18.0, 4.0)
+    registerDynamicItem("raw_copper", 8.0, 1.5)
+    registerDynamicItem("raw_gold", 25.0, 5.0)
+    registerDynamicItem("gold_ingot", 30.0, 7.0)
+    registerDynamicItem("redstone", 6.0, 1.2)
+    registerDynamicItem("lapis_lazuli", 8.0, 1.5)
+    registerDynamicItem("diamond", 150.0, 35.0)
+    registerDynamicItem("ancient_debris", 800.0, 200.0)
+    registerDynamicItem("netherite_scrap", 900.0, 250.0)
+    registerDynamicItem("netherite_ingot", 4000.0, 1200.0)
+    registerDynamicItem("emerald", 45.0, 10.0)
+
+    # Mob Drops
+    registerDynamicItem("rotten_flesh", 2.0, 0.5)
+    registerDynamicItem("bone", 4.0, 1.0)
+    registerDynamicItem("string", 5.0, 1.2)
+    registerDynamicItem("spider_eye", 6.0, 1.5)
+    registerDynamicItem("gunpowder", 14.0, 3.0)
+    registerDynamicItem("ender_pearl", 35.0, 8.0)
+    registerDynamicItem("blaze_rod", 40.0, 10.0)
+    registerDynamicItem("slime_ball", 20.0, 5.0)
+    registerDynamicItem("ghast_tear", 120.0, 30.0)
+
+    # Wood & Building Blocks
+    registerDynamicItem("oak_log", 4.0, 0.8)
+    registerDynamicItem("spruce_log", 4.0, 0.8)
+    registerDynamicItem("birch_log", 4.0, 0.8)
+    registerDynamicItem("cobblestone", 0.5, 0.1)
+    registerDynamicItem("stone", 1.0, 0.2)
+    registerDynamicItem("obsidian", 25.0, 5.0)
+
+function registerDynamicItem(id: text, base: number, minPrice: number):
+    set {dynamic::base::%{_id}%} to {_base}
+    set {dynamic::min::%{_id}%} to {_minPrice}
+    if {dynamic::sold::%{_id}%} is not set:
+        set {dynamic::sold::%{_id}%} to 0
+
+on script load:
+    initDynamicPrices()
+
+# --- Price Calculation Formula ---
+function getDynamicPrice(id: text) :: number:
+    set {_base} to {dynamic::base::%{_id}%}
+    if {_base} is not set:
+        return 0 # Item is not sellable
+    set {_min} to {dynamic::min::%{_id}%}
+    set {_sold} to {dynamic::sold::%{_id}%}
+    
+    # Elasticity: Price drops smoothly as supply increases
+    set {_dropFactor} to min(1.0, {_sold} / {@saturation-threshold})
+    set {_price} to {_base} * (1.0 - ({_dropFactor} * 0.75)) # Max 75% base price drop
+    return max({_min}, {_price})
+
+# Automatic market supply recovery over time
+every {@decay-interval}:
+    loop {dynamic::sold::*}:
+        set {_id} to loop-index
+        set {_current} to loop-value
+        if {_current} > 0:
+            set {_reduced} to {_current} * (1.0 - {@decay-percent})
+            set {dynamic::sold::%{_id}%} to max(0, {_reduced})
+
+# Helper to normalize item ID text
+function getItemKey(i: item) :: text:
+    return "%type of {_i}%"
+
+# --- Command: /sell hand ---
+command /sell [<text=hand>]:
+    aliases: /sellhand
+    description: Sell the item held in your main hand or your entire inventory.
+    usage: /sell [hand|all]
+    trigger:
+        set {_mode} to lower text of arg-1
+        
+        # Sells current hand item
+        if {_mode} is "hand":
+            set {_item} to player's tool
+            if {_item} is air:
+                send "{@prefix}<#ff6b8f>You are not holding any item to sell!" to player
+                stop
+                
+            set {_key} to getItemKey({_item})
+            set {_unitPrice} to getDynamicPrice({_key})
+            if {_unitPrice} <= 0:
+                send "{@prefix}<#ff6b8f>This item cannot be sold to the server market." to player
+                stop
+                
+            set {_amount} to item amount of {_item}
+            set {_total} to {_unitPrice} * {_amount}
+            
+            # Remove item and credit funds
+            set player's tool to air
+            addBal(player, {_total})
+            add {_amount} to {dynamic::sold::%{_key}%}
+            add {_amount} to {eco::stats::%player's uuid%::items_sold}
+            
+            send "{@prefix}Sold <#ffd700>%{_amount}%x %{_key}% <#cfc3e6>for <#a6ffcb>%fmtMoney({_total})% <#888888>(@ %fmtMoney({_unitPrice})%/ea)" to player
+            play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.3 at player
+            
+        else if {_mode} is "all" or "inventory":
+            execute player command "/sellall"
+        else:
+            send "{@prefix}Usage: <#ffd700>/sell hand <#cfc3e6>or <#ffd700>/sell all" to player
+
+# --- Command: /sellall ---
+command /sellall:
+    description: Sell all sellable items in your inventory at dynamic market prices.
+    trigger:
+        set {_totalEarned} to 0
+        set {_totalItems} to 0
+        
+        loop items in player's inventory:
+            set {_i} to loop-item
+            if {_i} is not air:
+                set {_key} to getItemKey({_i})
+                set {_unitPrice} to getDynamicPrice({_key})
+                if {_unitPrice} > 0:
+                    set {_count} to item amount of {_i}
+                    set {_earned} to {_unitPrice} * {_count}
+                    
+                    add {_earned} to {_totalEarned}
+                    add {_count} to {_totalItems}
+                    add {_count} to {dynamic::sold::%{_key}%}
+                    remove {_i} from player's inventory
+                    
+        if {_totalItems} = 0:
+            send "{@prefix}<#ff6b8f>No sellable items found in your inventory." to player
+            stop
+            
+        addBal(player, {_totalEarned})
+        add {_totalItems} to {eco::stats::%player's uuid%::items_sold}
+        
+        send " " to player
+        send "<#ffd700>&lMARKET SALE RECEIPT" to player
+        send "<#888888>▪ <#cfc3e6>Total Items Sold: <#ffd700>%{_totalItems}% items" to player
+        send "<#888888>▪ <#cfc3e6>Total Earned: <#a6ffcb>%fmtMoney({_totalEarned})%" to player
+        send " " to player
+        play sound "entity.player.levelup" with volume 1 and pitch 1.6 at player
+
+# --- Command: /prices [item] ---
+command /prices [<text>]:
+    aliases: /market, /itemvalue
+    description: View the current dynamic market price and saturation for an item.
+    trigger:
+        if arg-1 is set:
+            set {_key} to lower text of arg-1
+            set {_price} to getDynamicPrice({_key})
+            if {_price} <= 0:
+                send "{@prefix}<#ff6b8f>No dynamic pricing data found for '%{_key}%'." to player
+                stop
+            set {_base} to {dynamic::base::%{_key}%}
+            set {_min} to {dynamic::min::%{_key}%}
+            set {_sold} to {dynamic::sold::%{_key}%}
+            
+            send " " to player
+            send "<#ffd700>&lDYNAMIC MARKET: <#fcf4ff>%{_key}%" to player
+            send "<#888888>▪ <#cfc3e6>Current Price: <#a6ffcb>%fmtMoney({_price})%/ea" to player
+            send "<#888888>▪ <#cfc3e6>Base Price: <#cfc3e6>%fmtMoney({_base})%" to player
+            send "<#888888>▪ <#cfc3e6>Floor Minimum: <#ff6b8f>%fmtMoney({_min})%" to player
+            send "<#888888>▪ <#cfc3e6>Market Saturation: <#ffd700>%{_sold}% sold recently" to player
+            send " " to player
+        else:
+            send "{@prefix}Check current price with <#ffd700>/prices <item_id><#cfc3e6>, or hold an item and type <#ffd700>/sell hand<#cfc3e6>." to player

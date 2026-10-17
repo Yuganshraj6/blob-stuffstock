@@ -1,0 +1,12 @@
+every 20 minutes:
+    set {chatgame::answer} to "DIAMOND"
+    broadcast " "
+    broadcast "<#ffd700>&lCHAT GAME <#888888>» <#cfc3e6>First to unscramble: <#ffd700>&lD N A I M O D"
+    broadcast " "
+
+on chat:
+    if {chatgame::answer} is set:
+        if message is {chatgame::answer}:
+            delete {chatgame::answer}
+            broadcast "{@prefix}<#a6ffcb>%player% <#cfc3e6>unscrambled the word first!"
+            give 1 of diamond to player

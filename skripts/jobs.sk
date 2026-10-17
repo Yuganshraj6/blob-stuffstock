@@ -1,0 +1,111 @@
+# ==============================================================================
+# Script: jobs.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Player Jobs system. Join Miner, Woodcutter, Hunter, or Farmer
+#              to earn steady passive income and XP while playing.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#a6ffcb>&lJOBS <#888888>» <#cfc3e6>
+    gui-title: <#181223>&lSELECT YOUR JOB
+
+# Open Job selection GUI
+function openJobsGUI(p: player):
+    set {_inv} to a new chest inventory with 3 rows named "{@gui-title}"
+    
+    # Border
+    set {_s} to 0
+    while {_s} < 27:
+        set slot {_s} of {_inv} to gray stained glass pane named " "
+        add 1 to {_s}
+        
+    set slot 10 of {_inv} to diamond pickaxe named "<#a6ffcb>&l⛏ Miner" with lore "<#cfc3e6>Earn money by mining ores", "<#888888>Payouts: $5 - $250 per ore", " ", "<#a6ffcb>[Click to Join]"
+    set slot 12 of {_inv} to diamond axe named "<#ffd700>&l🪓 Woodcutter" with lore "<#cfc3e6>Earn money chopping trees", "<#888888>Payouts: $3 - $10 per log", " ", "<#a6ffcb>[Click to Join]"
+    set slot 14 of {_inv} to golden hoe named "<#ffb3dd>&l🌾 Farmer" with lore "<#cfc3e6>Earn money harvesting crops", "<#888888>Payouts: $2 - $15 per harvest", " ", "<#a6ffcb>[Click to Join]"
+    set slot 16 of {_inv} to diamond sword named "<#ff6b8f>&l⚔ Hunter" with lore "<#cfc3e6>Earn money slaying monsters", "<#888888>Payouts: $5 - $50 per kill", " ", "<#a6ffcb>[Click to Join]"
+    
+    open {_inv} to {_p}
+
+# Job selection click handler
+on inventory click:
+    if name of event-inventory is "{@gui-title}":
+        cancel event
+        set {_slot} to clicked slot
+        set {_uuid} to player's uuid
+        
+        if {_slot} = 10:
+            set {jobs::current::%{_uuid}%} to "Miner"
+            send "{@prefix}You are now employed as a <#a6ffcb>Miner<#cfc3e6>!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.4 at player
+            close player's inventory
+        else if {_slot} = 12:
+            set {jobs::current::%{_uuid}%} to "Woodcutter"
+            send "{@prefix}You are now employed as a <#ffd700>Woodcutter<#cfc3e6>!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.4 at player
+            close player's inventory
+        else if {_slot} = 14:
+            set {jobs::current::%{_uuid}%} to "Farmer"
+            send "{@prefix}You are now employed as a <#ffb3dd>Farmer<#cfc3e6>!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.4 at player
+            close player's inventory
+        else if {_slot} = 16:
+            set {jobs::current::%{_uuid}%} to "Hunter"
+            send "{@prefix}You are now employed as a <#ff6b8f>Hunter<#cfc3e6>!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.4 at player
+            close player's inventory
+
+# --- Job Action Triggers ---
+
+# MINER: On block break
+on break:
+    player is survival
+    set {_uuid} to player's uuid
+    if {jobs::current::%{_uuid}%} is "Miner":
+        set {_payout} to 0
+        if event-block is coal ore or deepslate coal ore:
+            set {_payout} to 3.0
+        else if event-block is iron ore or deepslate iron ore:
+            set {_payout} to 8.0
+        else if event-block is gold ore or deepslate gold ore:
+            set {_payout} to 15.0
+        else if event-block is diamond ore or deepslate diamond ore:
+            set {_payout} to 50.0
+        else if event-block is ancient debris:
+            set {_payout} to 200.0
+            
+        if {_payout} > 0:
+            addBal(player, {_payout})
+            send action bar "<#a6ffcb>&lMiner: <#cfc3e6>Mined %event-block% <#a6ffcb>+%{_payout}%$" to player
+
+# WOODCUTTER: On log break
+on break:
+    player is survival
+    set {_uuid} to player's uuid
+    if {jobs::current::%{_uuid}%} is "Woodcutter":
+        if event-block is any log:
+            addBal(player, 4.0)
+            send action bar "<#ffd700>&lWoodcutter: <#cfc3e6>Chopped log <#a6ffcb>+$4.00" to player
+
+# HUNTER: On monster kill
+on death of monster:
+    attacker is a player
+    set {_uuid} to attacker's uuid
+    if {jobs::current::%{_uuid}%} is "Hunter":
+        set {_reward} to 8.0
+        if victim is enderman or blaze:
+            set {_reward} to 25.0
+        else if victim is wither or ender dragon:
+            set {_reward} to 500.0
+            
+        addBal(attacker, {_reward})
+        send action bar "<#ff6b8f>&lHunter: <#cfc3e6>Killed %victim% <#a6ffcb>+%{_reward}%$" to attacker
+
+# --- Command: /jobs ---
+command /jobs:
+    aliases: /job
+    description: Choose a job to earn money while playing.
+    trigger:
+        openJobsGUI(player)

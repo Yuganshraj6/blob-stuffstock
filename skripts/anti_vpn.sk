@@ -1,0 +1,4 @@
+on join:
+    # Basic alert for staff review
+    if player has permission "staff.notify":
+        send "<#a6ffcb>&lSECURITY <#888888>» <#cfc3e6>%player% joined from %player's IP%" to player

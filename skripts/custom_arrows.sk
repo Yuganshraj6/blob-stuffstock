@@ -1,0 +1,6 @@
+on damage:
+    damage was caused by projectile
+    attacker is a player
+    name of attacker's tool contains "Frost Bow"
+    apply slowness 2 to victim for 5 seconds
+    send "<#a6ffcb>&lFROST <#888888>» <#cfc3e6>Target frozen!" to attacker

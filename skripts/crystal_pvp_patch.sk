@@ -1,0 +1,4 @@
+on damage:
+    damage was caused by block explosion
+    victim is a player
+    set damage to damage * 0.7

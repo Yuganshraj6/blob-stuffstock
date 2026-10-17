@@ -1,0 +1,92 @@
+# ==============================================================================
+# Script: sellchests.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Automated Sell Chests. Items placed inside are automatically sold
+#              every 30 seconds using the dynamic pricing engine, crediting the owner.
+# Dependencies: Skript 2.8+ (economy_core.sk & dynamic_sell.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffd700>&lSELL CHEST <#888888>» <#cfc3e6>
+    chest-cost: 25000
+    check-interval: 30 seconds
+
+# --- Command: /sellchest ---
+command /sellchest:
+    description: Purchase or receive an Auto-Sell Chest.
+    trigger:
+        if hasBal(player, {@chest-cost}) is false:
+            send "{@prefix}<#ff6b8f>You need <#a6ffcb>%fmtMoney({@chest-cost})% <#ff6b8f>to buy an Auto-Sell Chest." to player
+            stop
+            
+        if player does not have space for 1 of chest:
+            send "{@prefix}<#ff6b8f>Your inventory is full!" to player
+            stop
+            
+        removeBal(player, {@chest-cost})
+        set {_c} to chest named "<#ffd700>&lAUTO-SELL CHEST" with lore "<#cfc3e6>Automatically sells items", "<#cfc3e6>placed inside every 30s", "<#888888>Owner: %player%"
+        give 1 of {_c} to player
+        
+        send "{@prefix}Purchased an <#ffd700>Auto-Sell Chest <#cfc3e6>for <#a6ffcb>%fmtMoney({@chest-cost})%<#cfc3e6>!" to player
+        play sound "entity.player.levelup" with volume 1 and pitch 1.4 at player
+
+# Track placement of Auto-Sell Chest
+on place of chest:
+    set {_item} to player's tool
+    if name of {_item} is "<#ffd700>&lAUTO-SELL CHEST":
+        set {_loc} to location of event-block
+        set {sellchests::active::%{_loc}%} to player's uuid
+        send "{@prefix}Auto-Sell Chest placed! Items inside will be sold every 30s." to player
+        play sound "block.anvil.use" with volume 0.8 and pitch 1.6 at player
+
+# Track breaking of Auto-Sell Chest
+on break of chest:
+    set {_loc} to location of event-block
+    if {sellchests::active::%{_loc}%} is set:
+        set {_ownerUUID} to {sellchests::active::%{_loc}%}
+        if {_ownerUUID} is not player's uuid:
+            if player does not have permission "economy.admin":
+                cancel event
+                send "{@prefix}<#ff6b8f>You cannot break another player's Auto-Sell Chest!" to player
+                stop
+                
+        delete {sellchests::active::%{_loc}%}
+        cancel drops
+        drop 1 of (chest named "<#ffd700>&lAUTO-SELL CHEST" with lore "<#cfc3e6>Automatically sells items", "<#cfc3e6>placed inside every 30s") at {_loc}
+        send "{@prefix}Auto-Sell Chest broken and recovered." to player
+
+# Periodic sell engine for all active sell chests
+every {@check-interval}:
+    loop {sellchests::active::*}:
+        set {_loc} to loop-index parsed as location
+        set {_ownerUUID} to loop-value
+        set {_inv} to inventory of block at {_loc}
+        
+        if {_inv} is set:
+            set {_earned} to 0
+            set {_count} to 0
+            
+            loop items in {_inv}:
+                set {_i} to loop-value-2
+                if {_i} is not air:
+                    set {_key} to getItemKey({_i})
+                    set {_price} to getDynamicPrice({_key})
+                    if {_price} > 0:
+                        set {_amount} to item amount of {_i}
+                        set {_itemTotal} to {_price} * {_amount}
+                        
+                        add {_itemTotal} to {_earned}
+                        add {_amount} to {_count}
+                        add {_amount} to {dynamic::sold::%{_key}%}
+                        remove {_i} from {_inv}
+                        
+            if {_earned} > 0:
+                addBal({_ownerUUID} parsed as offline player, {_earned})
+                add {_count} to {eco::stats::%{_ownerUUID}%::items_sold}
+                
+                # If owner is online, show subtle action bar notification
+                set {_owner} to ({_ownerUUID} parsed as offline player)
+                if {_owner} is online:
+                    send action bar "<#ffd700>&lSell Chest: <#cfc3e6>Sold <#ffd700>%{_count}% items <#cfc3e6>for <#a6ffcb>+%fmtMoney({_earned})%" to {_owner}

@@ -1,0 +1,10 @@
+options:
+    prefix: <#c3a6ff>&lCRATE <#888888>» <#cfc3e6>
+
+on right click on ender chest:
+    player is holding tripwire hook
+    cancel event
+    remove 1 of tripwire hook from player's inventory
+    give 5 of diamond to player
+    send "{@prefix}Opened Mythic Crate! Won <#a6ffcb>5x Diamonds<#cfc3e6>!" to player
+    play sound "ui.toast.challenge_complete" with volume 1 and pitch 1.4 at player

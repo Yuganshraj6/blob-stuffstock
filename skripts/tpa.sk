@@ -1,0 +1,97 @@
+# ==============================================================================
+# Script: tpa.sk
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Player-to-player teleport request system with timeout & warmup.
+# Dependencies: Skript 2.8+ (Vanilla Skript)
+# ==============================================================================
+
+options:
+    prefix: <#c3a6ff>&lTPA <#888888>» <#cfc3e6>
+    timeout: 60 seconds
+    warmup: 3 seconds
+
+# --- Command: /tpa ---
+command /tpa <player>:
+    description: Send a teleport request to another player.
+    usage: /tpa <player>
+    trigger:
+        set {_target} to arg-1
+        if {_target} is player:
+            send "{@prefix}<#ff6b8f>You cannot send a teleport request to yourself!" to player
+            stop
+            
+        set {_targetUUID} to {_target}'s uuid
+        set {_playerUUID} to player's uuid
+        
+        set {tpa::request::%{_targetUUID}%} to player
+        set {tpa::timestamp::%{_targetUUID}%} to now
+        
+        send "{@prefix}Teleport request sent to <#c3a6ff>%{_target}%<#cfc3e6>. They have 60 seconds to accept." to player
+        
+        send " " to {_target}
+        send "{@prefix}<#c3a6ff>%player% <#cfc3e6>wants to teleport to you." to {_target}
+        send "  <#c3a6ff><tooltip:Click to accept teleport request><run command:/tpaccept>[ACCEPT]<reset>   <#ff6b8f><tooltip:Click to deny teleport request><run command:/tpdeny>[DENY]<reset>" to {_target}
+        send " " to {_target}
+        play sound "block.note_block.pling" with volume 1 and pitch 1.5 at {_target}
+
+# --- Command: /tpaccept ---
+command /tpaccept:
+    description: Accept an incoming teleport request.
+    trigger:
+        set {_uuid} to player's uuid
+        set {_requester} to {tpa::request::%{_uuid}%}
+        
+        if {_requester} is not set:
+            send "{@prefix}<#ff6b8f>You have no pending teleport requests." to player
+            stop
+            
+        if difference between {tpa::timestamp::%{_uuid}%} and now > {@timeout}:
+            delete {tpa::request::%{_uuid}%}
+            delete {tpa::timestamp::%{_uuid}%}
+            send "{@prefix}<#ff6b8f>That teleport request has expired." to player
+            stop
+            
+        if {_requester} is not online:
+            delete {tpa::request::%{_uuid}%}
+            delete {tpa::timestamp::%{_uuid}%}
+            send "{@prefix}<#ff6b8f>That player is no longer online." to player
+            stop
+            
+        delete {tpa::request::%{_uuid}%}
+        delete {tpa::timestamp::%{_uuid}%}
+        
+        send "{@prefix}Request accepted! Teleporting <#c3a6ff>%{_requester}% <#cfc3e6>to you..." to player
+        send "{@prefix}<#c3a6ff>%player% <#cfc3e6>accepted your request! Teleporting in <#c3a6ff>{@warmup}<#cfc3e6>... Don't move!" to {_requester}
+        
+        set {_startLoc} to {_requester}'s location
+        set {_waited} to 0
+        while {_waited} < 3:
+            wait 1 second
+            if distance between {_requester}'s location and {_startLoc} > 0.5:
+                send "{@prefix}<#ff6b8f>Teleport cancelled because you moved!" to {_requester}
+                send "{@prefix}<#ff6b8f>Teleport cancelled because <#c3a6ff>%{_requester}% <#ff6b8f>moved." to player
+                stop
+            add 1 to {_waited}
+            
+        teleport {_requester} to player's location
+        send "{@prefix}Teleported successfully!" to {_requester}
+        play sound "entity.enderman.teleport" with volume 1 and pitch 1 at {_requester}
+
+# --- Command: /tpdeny ---
+command /tpdeny:
+    description: Deny an incoming teleport request.
+    trigger:
+        set {_uuid} to player's uuid
+        set {_requester} to {tpa::request::%{_uuid}%}
+        
+        if {_requester} is not set:
+            send "{@prefix}<#ff6b8f>You have no pending teleport requests." to player
+            stop
+            
+        delete {tpa::request::%{_uuid}%}
+        delete {tpa::timestamp::%{_uuid}%}
+        
+        send "{@prefix}Teleport request denied." to player
+        if {_requester} is online:
+            send "{@prefix}<#c3a6ff>%player% <#ff6b8f>denied your teleport request." to {_requester}

@@ -1,0 +1,13 @@
+options:
+    cooldown: 12 seconds
+    prefix: <#c3a6ff>&lPEARL <#888888>» <#cfc3e6>
+
+on right click with ender pearl:
+    set {_uuid} to player's uuid
+    if {pearl::cd::%{_uuid}%} is set:
+        if difference between {pearl::cd::%{_uuid}%} and now < {@cooldown}:
+            cancel event
+            set {_rem} to {@cooldown} - (difference between {pearl::cd::%{_uuid}%} and now)
+            send "{@prefix}<#ff6b8f>Ender pearl on cooldown for <#ffd700>%{_rem}%<#ff6b8f>." to player
+            stop
+    set {pearl::cd::%{_uuid}%} to now

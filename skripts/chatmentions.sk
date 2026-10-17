@@ -1,0 +1,5 @@
+on chat:
+    loop all players:
+        if message contains "@%loop-player%":
+            replace all "@%loop-player%" with "<#ffd700>@%loop-player%<#cfc3e6>" in message
+            play sound "block.note_block.bell" with volume 1 and pitch 1.8 at loop-player

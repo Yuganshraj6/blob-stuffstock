@@ -1,0 +1,8 @@
+on break:
+    player is a player
+    name of player's tool contains "Explosive Pickaxe"
+    set {_loc} to location of event-block
+    loop blocks in radius 1.5 around {_loc}:
+        if loop-block is stone or deepslate or cobblestone or coal ore or iron ore:
+            break loop-block naturally
+    show explosion at {_loc}

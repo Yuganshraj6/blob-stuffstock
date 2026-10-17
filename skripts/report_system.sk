@@ -1,0 +1,10 @@
+options:
+    prefix: <#ff6b8f>&lREPORT <#888888>» <#cfc3e6>
+
+command /report <player> <text>:
+    description: Report a suspicious player to staff.
+    trigger:
+        send "{@prefix}Report received. Staff have been alerted." to player
+        loop all players:
+            if loop-player has permission "staff.reports":
+                send "{@prefix}<#ff6b8f>%player% <#cfc3e6>reported <#ffd700>%arg-1%<#cfc3e6>: <#fcf4ff>%arg-2%" to loop-player

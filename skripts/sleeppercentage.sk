@@ -1,0 +1,9 @@
+options:
+    prefix: <#ffb3dd>&lSLEEP <#888888>» <#cfc3e6>
+
+on bed enter:
+    broadcast "{@prefix}<#fcf4ff>%player% <#cfc3e6>is resting in bed. Skipping the night..."
+    wait 3 seconds
+    set time in player's world to 7:00
+    set weather in player's world to clear
+    broadcast "{@prefix}Good morning! The night was skipped."

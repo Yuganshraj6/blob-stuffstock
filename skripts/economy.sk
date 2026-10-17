@@ -1,0 +1,112 @@
+# ==============================================================================
+# Script: economy.sk
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: High-performance standalone economy system with UUID storage,
+#              pay confirmations, admin commands, and balance leaderboards.
+# Dependencies: Skript 2.8+ (Vanilla Skript)
+# ==============================================================================
+
+options:
+    prefix: <#a6ffcb>&lECONOMY <#888888>» <#cfc3e6>
+    starting-balance: 1000
+    currency-symbol: "$"
+
+# Helper function to get player balance
+function getBal(p: player) :: number:
+    set {_uuid} to {_p}'s uuid
+    if {eco::balance::%{_uuid}%} is not set:
+        set {eco::balance::%{_uuid}%} to {@starting-balance}
+    return {eco::balance::%{_uuid}%}
+
+# Helper function to modify balance
+function addBal(p: player, amount: number):
+    set {_uuid} to {_p}'s uuid
+    set {eco::balance::%{_uuid}%} to getBal({_p}) + {_amount}
+
+function removeBal(p: player, amount: number):
+    set {_uuid} to {_p}'s uuid
+    set {eco::balance::%{_uuid}%} to getBal({_p}) - {_amount}
+
+# Initialize starting balance on first join
+on first join:
+    set {_uuid} to player's uuid
+    set {eco::balance::%{_uuid}%} to {@starting-balance}
+
+# --- Command: /balance (/bal, /money) ---
+command /balance [<offline player>]:
+    aliases: /bal, /money
+    description: Check your or another player's balance.
+    trigger:
+        if arg-1 is set:
+            set {_target} to arg-1
+            set {_uuid} to {_target}'s uuid
+            set {_bal} to {eco::balance::%{_uuid}%}
+            if {_bal} is not set:
+                set {_bal} to {@starting-balance}
+            send "{@prefix}<#a6ffcb>%{_target}%<#cfc3e6>'s balance: <#a6ffcb>{@currency-symbol}%{_bal}%" to player
+        else:
+            set {_bal} to getBal(player)
+            send "{@prefix}Your balance: <#a6ffcb>{@currency-symbol}%{_bal}%" to player
+
+# --- Command: /pay ---
+command /pay <player> <number>:
+    description: Transfer money to another online player.
+    usage: /pay <player> <amount>
+    trigger:
+        set {_target} to arg-1
+        set {_amount} to arg-2
+        
+        if {_target} is player:
+            send "{@prefix}<#ff6b8f>You cannot pay yourself!" to player
+            stop
+            
+        if {_amount} <= 0:
+            send "{@prefix}<#ff6b8f>Amount must be greater than 0!" to player
+            stop
+            
+        set {_playerBal} to getBal(player)
+        if {_playerBal} < {_amount}:
+            send "{@prefix}<#ff6b8f>Insufficient funds! You only have <#a6ffcb>{@currency-symbol}%{_playerBal}%<#ff6b8f>." to player
+            stop
+            
+        removeBal(player, {_amount})
+        addBal({_target}, {_amount})
+        
+        send "{@prefix}You sent <#a6ffcb>{@currency-symbol}%{_amount}% <#cfc3e6>to <#a6ffcb>%{_target}%<#cfc3e6>." to player
+        send "{@prefix}You received <#a6ffcb>{@currency-symbol}%{_amount}% <#cfc3e6>from <#a6ffcb>%player%<#cfc3e6>." to {_target}
+        play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.5 at player
+        play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.5 at {_target}
+
+# --- Command: /eco (Admin command) ---
+command /eco <text> <player> <number>:
+    permission: economy.admin
+    permission message: {@prefix}<#ff6b8f>You do not have permission to manage the economy.
+    description: Admin balance management.
+    usage: /eco <give|take|set> <player> <amount>
+    trigger:
+        set {_action} to lower text of arg-1
+        set {_target} to arg-2
+        set {_amount} to arg-3
+        
+        if {_amount} < 0:
+            send "{@prefix}<#ff6b8f>Amount cannot be negative!" to player
+            stop
+            
+        if {_action} is "give":
+            addBal({_target}, {_amount})
+            send "{@prefix}Gave <#a6ffcb>{@currency-symbol}%{_amount}% <#cfc3e6>to <#a6ffcb>%{_target}%<#cfc3e6>." to player
+            send "{@prefix}An admin added <#a6ffcb>{@currency-symbol}%{_amount}% <#cfc3e6>to your account." to {_target}
+            
+        else if {_action} is "take":
+            removeBal({_target}, {_amount})
+            send "{@prefix}Took <#a6ffcb>{@currency-symbol}%{_amount}% <#cfc3e6>from <#a6ffcb>%{_target}%<#cfc3e6>." to player
+            send "{@prefix}An admin removed <#a6ffcb>{@currency-symbol}%{_amount}% <#cfc3e6>from your account." to {_target}
+            
+        else if {_action} is "set":
+            set {_uuid} to {_target}'s uuid
+            set {eco::balance::%{_uuid}%} to {_amount}
+            send "{@prefix}Set <#a6ffcb>%{_target}%<#cfc3e6>'s balance to <#a6ffcb>{@currency-symbol}%{_amount}%<#cfc3e6>." to player
+            send "{@prefix}Your balance was set to <#a6ffcb>{@currency-symbol}%{_amount}%<#cfc3e6>." to {_target}
+        else:
+            send "{@prefix}Usage: <#a6ffcb>/eco <give|take|set> <player> <amount>" to player

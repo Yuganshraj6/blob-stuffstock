@@ -1,0 +1,15 @@
+options:
+    prefix: <#a6ffcb>&lKITS <#888888>» <#cfc3e6>
+
+command /kit [<text=starter>]:
+    description: Claim player starter kit.
+    trigger:
+        if arg-1 is "starter":
+            if {kit::starter::%player's uuid%} is true:
+                send "{@prefix}<#ff6b8f>You have already claimed your starter kit!" to player
+                stop
+            set {kit::starter::%player's uuid%} to true
+            give 1 of iron sword to player
+            give 1 of iron pickaxe to player
+            give 16 of cooked beef to player
+            send "{@prefix}Claimed your Starter Kit!" to player

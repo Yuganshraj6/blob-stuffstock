@@ -1,0 +1,4 @@
+on death of player:
+    attacker is a player
+    victim is a player
+    drop 1 of skull of victim named "<#fcf4ff>%victim%'s Skull" with lore "<#888888>Decapitated by %attacker%" at victim

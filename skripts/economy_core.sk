@@ -1,0 +1,216 @@
+# ==============================================================================
+# Script: economy_core.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Foundation module: UUID balance registry, transaction engine,
+#              anti-overflow caps, player stats tracker, and player settings.
+# Dependencies: Skript 2.8+ (Vanilla Skript)
+# ==============================================================================
+
+options:
+    prefix: <#a6ffcb>&lECONOMY <#888888>» <#cfc3e6>
+    starting-balance: 1000
+    currency-symbol: "$"
+    max-balance: 1000000000000000 # 1 Quadrillion safety cap
+
+# --- Core API Functions ---
+
+# Get player's current balance
+function getBal(p: offline player) :: number:
+    set {_uuid} to {_p}'s uuid
+    if {eco::balance::%{_uuid}%} is not set:
+        set {eco::balance::%{_uuid}%} to {@starting-balance}
+    return {eco::balance::%{_uuid}%}
+
+# Check if player has at least a certain balance
+function hasBal(p: offline player, amount: number) :: boolean:
+    return true if getBal({_p}) >= {_amount} else false
+
+# Safe addition with overflow cap and stats tracking
+function addBal(p: offline player, amount: number):
+    set {_uuid} to {_p}'s uuid
+    set {_current} to getBal({_p})
+    set {_new} to min({_current} + {_amount}, {@max-balance})
+    set {eco::balance::%{_uuid}%} to {_new}
+    add {_amount} to {eco::stats::%{_uuid}%::total_earned}
+
+# Safe subtraction with floor and stats tracking
+function removeBal(p: offline player, amount: number):
+    set {_uuid} to {_p}'s uuid
+    set {_current} to getBal({_p})
+    set {_new} to max(0, {_current} - {_amount})
+    set {eco::balance::%{_uuid}%} to {_new}
+    add {_amount} to {eco::stats::%{_uuid}%::total_spent}
+
+# Set exact balance
+function setBal(p: offline player, amount: number):
+    set {_uuid} to {_p}'s uuid
+    set {eco::balance::%{_uuid}%} to max(0, min({_amount}, {@max-balance}))
+
+# Human-readable currency formatting (e.g., $1.25M, $450K, $1,500)
+function fmtMoney(n: number) :: text:
+    if {_n} >= 1000000000000:
+        set {_t} to {_n} / 1000000000000
+        return "{@currency-symbol}%{_t}%T"
+    else if {_n} >= 1000000000:
+        set {_b} to {_n} / 1000000000
+        return "{@currency-symbol}%{_b}%B"
+    else if {_n} >= 1000000:
+        set {_m} to {_n} / 1000000
+        return "{@currency-symbol}%{_m}%M"
+    else if {_n} >= 1000:
+        set {_k} to {_n} / 1000
+        return "{@currency-symbol}%{_k}%k"
+    return "{@currency-symbol}%{_n}%"
+
+# --- Initialization & Join Logic ---
+
+on first join:
+    set {_uuid} to player's uuid
+    set {eco::balance::%{_uuid}%} to {@starting-balance}
+    set {eco::stats::%{_uuid}%::total_earned} to {@starting-balance}
+    set {eco::stats::%{_uuid}%::total_spent} to 0
+    set {eco::stats::%{_uuid}%::items_sold} to 0
+    set {eco::settings::%{_uuid}%::pay_alerts} to true
+    set {eco::settings::%{_uuid}%::sell_receipts} to true
+
+# --- Commands ---
+
+# /balance (/bal, /money)
+command /balance [<offline player>]:
+    aliases: /bal, /money
+    description: View your personal balance or another player's balance.
+    usage: /balance [player]
+    trigger:
+        if arg-1 is set:
+            set {_target} to arg-1
+            set {_bal} to getBal({_target})
+            send "{@prefix}<#a6ffcb>%{_target}%<#cfc3e6>'s balance: <#a6ffcb>%fmtMoney({_bal})% <#888888>(%{_bal}%)" to player
+        else:
+            set {_bal} to getBal(player)
+            send "{@prefix}Your Balance: <#a6ffcb>%fmtMoney({_bal})% <#888888>(%{_bal}%)" to player
+
+# /pay
+command /pay <player> <number>:
+    description: Send funds directly to another player.
+    usage: /pay <player> <amount>
+    trigger:
+        set {_target} to arg-1
+        set {_amount} to arg-2
+        
+        if {_target} is player:
+            send "{@prefix}<#ff6b8f>You cannot pay yourself!" to player
+            stop
+            
+        if {_amount} <= 0:
+            send "{@prefix}<#ff6b8f>Transfer amount must be greater than 0!" to player
+            stop
+            
+        if hasBal(player, {_amount}) is false:
+            send "{@prefix}<#ff6b8f>Insufficient funds! You only have <#a6ffcb>%fmtMoney(getBal(player))%<#ff6b8f>." to player
+            stop
+            
+        set {_targetUUID} to {_target}'s uuid
+        if {eco::settings::%{_targetUUID}%::pay_toggle} is false:
+            send "{@prefix}<#ff6b8f>%{_target}% has disabled incoming player payments." to player
+            stop
+            
+        removeBal(player, {_amount})
+        addBal({_target}, {_amount})
+        
+        send "{@prefix}You transferred <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>to <#a6ffcb>%{_target}%<#cfc3e6>." to player
+        
+        # Check receiver alert setting
+        if {eco::settings::%{_targetUUID}%::pay_alerts} is not false:
+            send "{@prefix}You received <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>from <#a6ffcb>%player%<#cfc3e6>." to {_target}
+            play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.4 at {_target}
+            
+        play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.4 at player
+
+# /stats [player] - Economy statistics
+command /stats [<offline player>]:
+    aliases: /ecostats
+    description: View lifetime economy statistics.
+    trigger:
+        set {_target} to player
+        if arg-1 is set:
+            set {_target} to arg-1
+        set {_uuid} to {_target}'s uuid
+        
+        send " " to player
+        send "<#a6ffcb>&lECONOMY STATS <#888888>» <#fcf4ff>%{_target}%" to player
+        send "<#888888>▪ <#cfc3e6>Current Balance: <#a6ffcb>%fmtMoney(getBal({_target}))%" to player
+        send "<#888888>▪ <#cfc3e6>Lifetime Earned: <#a6ffcb>%fmtMoney({eco::stats::%{_uuid}%::total_earned} ? 0)%" to player
+        send "<#888888>▪ <#cfc3e6>Lifetime Spent: <#ff6b8f>%fmtMoney({eco::stats::%{_uuid}%::total_spent} ? 0)%" to player
+        send "<#888888>▪ <#cfc3e6>Total Items Sold: <#c3a6ff>%{eco::stats::%{_uuid}%::items_sold} ? 0% items" to player
+        send " " to player
+
+# /ecosettings - Toggle personal notifications and preferences
+command /ecosettings [<text>]:
+    aliases: /ecoset
+    description: Toggle your personal economy preferences.
+    usage: /ecosettings [togglepay | togglereceipts]
+    trigger:
+        set {_uuid} to player's uuid
+        set {_action} to lower text of arg-1
+        
+        if {_action} is "togglepay":
+            if {eco::settings::%{_uuid}%::pay_toggle} is false:
+                set {eco::settings::%{_uuid}%::pay_toggle} to true
+                send "{@prefix}Incoming payments: <#a6ffcb>ENABLED" to player
+            else:
+                set {eco::settings::%{_uuid}%::pay_toggle} to false
+                send "{@prefix}Incoming payments: <#ff6b8f>DISABLED" to player
+                
+        else if {_action} is "togglereceipts":
+            if {eco::settings::%{_uuid}%::sell_receipts} is false:
+                set {eco::settings::%{_uuid}%::sell_receipts} to true
+                send "{@prefix}Sell chat receipts: <#a6ffcb>ENABLED" to player
+            else:
+                set {eco::settings::%{_uuid}%::sell_receipts} to false
+                send "{@prefix}Sell chat receipts: <#ff6b8f>DISABLED" to player
+        else:
+            send " " to player
+            send "<#a6ffcb>&lECONOMY SETTINGS" to player
+            send "<#888888>▪ <#cfc3e6>/ecosettings togglepay <#888888>- Enable/disable receiving /pay" to player
+            send "<#888888>▪ <#cfc3e6>/ecosettings togglereceipts <#888888>- Enable/disable /sell chat summary" to player
+            send " " to player
+
+# /eco - Administrative Command
+command /eco <text> <offline player> [<number>]:
+    permission: economy.admin
+    permission message: {@prefix}<#ff6b8f>You do not have administrative economy permission.
+    description: Administrative economy management.
+    usage: /eco <give|take|set|reset> <player> [amount]
+    trigger:
+        set {_action} to lower text of arg-1
+        set {_target} to arg-2
+        set {_amount} to arg-3
+        
+        if {_action} is "give":
+            if {_amount} <= 0:
+                send "{@prefix}<#ff6b8f>Amount must be positive." to player
+                stop
+            addBal({_target}, {_amount})
+            send "{@prefix}Added <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>to <#a6ffcb>%{_target}%<#cfc3e6>'s account." to player
+            
+        else if {_action} is "take":
+            if {_amount} <= 0:
+                send "{@prefix}<#ff6b8f>Amount must be positive." to player
+                stop
+            removeBal({_target}, {_amount})
+            send "{@prefix}Deducted <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>from <#a6ffcb>%{_target}%<#cfc3e6>'s account." to player
+            
+        else if {_action} is "set":
+            if {_amount} < 0:
+                send "{@prefix}<#ff6b8f>Amount cannot be negative." to player
+                stop
+            setBal({_target}, {_amount})
+            send "{@prefix}Set <#a6ffcb>%{_target}%<#cfc3e6>'s balance to <#a6ffcb>%fmtMoney({_amount})%<#cfc3e6>." to player
+            
+        else if {_action} is "reset":
+            setBal({_target}, {@starting-balance})
+            send "{@prefix}Reset <#a6ffcb>%{_target}%<#cfc3e6>'s balance to {@starting-balance}." to player
+        else:
+            send "{@prefix}Usage: <#a6ffcb>/eco <give|take|set|reset> <player> [amount]" to player

@@ -1,0 +1,9 @@
+on death of player:
+    attacker is a player
+    victim is a player
+    delete {ks::%victim's uuid%}
+    add 1 to {ks::%attacker's uuid%}
+    set {_streak} to {ks::%attacker's uuid%}
+    if {_streak} is 3 or 5 or 10 or 25:
+        broadcast "<#ff6b8f>&lKILLSTREAK <#888888>» <#fcf4ff>%attacker% <#cfc3e6>is on a <#ffd700>&l%{_streak}% <#cfc3e6>kill streak!"
+        play sound "ui.toast.challenge_complete" with volume 1 and pitch 1.5 at all players

@@ -1,0 +1,14 @@
+every 1 minute:
+    loop all players:
+        add 1 to {playtime::minutes::%loop-player's uuid%}
+
+command /playtime [<offline player>]:
+    description: View total playtime on the server.
+    trigger:
+        set {_t} to player
+        if arg-1 is set:
+            set {_t} to arg-1
+        set {_m} to {playtime::minutes::%{_t}'s uuid%} ? 0
+        set {_h} to floor({_m} / 60)
+        set {_rem} to mod({_m}, 60)
+        send "<#a6ffcb>&lPLAYTIME <#888888>» <#fcf4ff>%{_t}% <#cfc3e6>has played for <#ffd700>%{_h}%h %{_rem}%m<#cfc3e6>." to player

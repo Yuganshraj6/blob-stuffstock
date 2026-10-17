@@ -1,0 +1,4 @@
+every 10 seconds:
+    loop all players:
+        set tablist header of loop-player to "\n<#ffb3dd>&lStuffStock by OrbitOmen\n<#888888>Minecraft Mod & Script Hub\n"
+        set tablist footer of loop-player to "\n<#cfc3e6>Players: <#ffd700>%number of all players% <#888888>| <#cfc3e6>Ping: <#a6ffcb>%loop-player's ping%ms\n"

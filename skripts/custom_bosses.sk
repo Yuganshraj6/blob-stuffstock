@@ -1,0 +1,8 @@
+command /spawnboss:
+    permission: boss.admin
+    trigger:
+        spawn 1 of wither skeleton at player's location
+        set name of last spawned entity to "<#ff6b8f>&lINFERNO REAPER"
+        set max health of last spawned entity to 200
+        set health of last spawned entity to 200
+        broadcast "<#ff6b8f>&lBOSS <#888888>» <#fcf4ff>The Inferno Reaper has spawned!"

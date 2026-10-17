@@ -1,0 +1,15 @@
+command /cmdspy:
+    permission: staff.cmdspy
+    description: Toggle staff command spying.
+    trigger:
+        if {cmdspy::%player's uuid%} is true:
+            delete {cmdspy::%player's uuid%}
+            send "<#c3a6ff>&lCMDSPY <#888888>» <#ff6b8f>Disabled." to player
+        else:
+            set {cmdspy::%player's uuid%} to true
+            send "<#c3a6ff>&lCMDSPY <#888888>» <#a6ffcb>Enabled." to player
+
+on command:
+    loop all players:
+        if {cmdspy::%loop-player's uuid%} is true:
+            send "<#888888>[CMD] <#fcf4ff>%player%: <#c3a6ff>/%command% %arguments%" to loop-player

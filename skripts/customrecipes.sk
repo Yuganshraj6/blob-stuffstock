@@ -1,0 +1,3 @@
+on load:
+    register new shaped recipe for saddle using leather, leather, leather, iron ingot, air, iron ingot, air, tripwire hook, air
+    register new furnace recipe for leather using rotten flesh with exp 0.2

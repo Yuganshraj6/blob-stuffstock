@@ -1,0 +1,77 @@
+# ==============================================================================
+# Script: stafftools.sk
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Lightweight moderation tools: Staff Chat, Freeze Player,
+#              Vanish, and Quick Clear Chat.
+# Dependencies: Skript 2.8+ (Vanilla Skript)
+# ==============================================================================
+
+options:
+    prefix: <#c3a6ff>&lSTAFF <#888888>» <#cfc3e6>
+    staffchat-prefix: <#ff6b8f>&l[STAFF CHAT] <#c3a6ff>%player%<#888888>: <#fcf4ff>
+
+# --- Command: /sc (Staff Chat) ---
+command /sc <text>:
+    aliases: /staffchat
+    permission: staff.use
+    permission message: {@prefix}<#ff6b8f>Access denied.
+    description: Send a private message to all online staff members.
+    usage: /sc <message>
+    trigger:
+        set {_msg} to arg-1
+        loop all players:
+            if loop-player has permission "staff.use":
+                send "{@staffchat-prefix}%{_msg}%" to loop-player
+
+# --- Command: /freeze ---
+command /freeze <player>:
+    permission: staff.freeze
+    permission message: {@prefix}<#ff6b8f>Access denied.
+    description: Freeze or unfreeze a suspected player.
+    usage: /freeze <player>
+    trigger:
+        set {_target} to arg-1
+        set {_uuid} to {_target}'s uuid
+        
+        if {staff::frozen::%{_uuid}%} is true:
+            delete {staff::frozen::%{_uuid}%}
+            send "{@prefix}You unfroze <#c3a6ff>%{_target}%<#cfc3e6>." to player
+            send "{@prefix}<#a6ffcb>You have been unfrozen by staff." to {_target}
+            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at {_target}
+        else:
+            set {staff::frozen::%{_uuid}%} to true
+            send "{@prefix}You froze <#c3a6ff>%{_target}%<#cfc3e6>." to player
+            
+            send " " to {_target}
+            send "<#ff6b8f>&l⚠ YOU HAVE BEEN FROZEN BY A STAFF MEMBER ⚠" to {_target}
+            send "<#cfc3e6>Do not log out or you will be permanently banned." to {_target}
+            send "<#c3a6ff>Join our Discord or wait for instructions in chat." to {_target}
+            send " " to {_target}
+            play sound "block.anvil.land" with volume 1 and pitch 0.8 at {_target}
+
+# Prevent frozen player movement (fail-fast)
+on any move:
+    set {_uuid} to player's uuid
+    if {staff::frozen::%{_uuid}%} is true:
+        cancel event
+
+# Alert staff if frozen player quits
+on quit:
+    set {_uuid} to player's uuid
+    if {staff::frozen::%{_uuid}%} is true:
+        loop all players:
+            if loop-player has permission "staff.freeze":
+                send "{@prefix}<#ff6b8f>&lALERT: <#c3a6ff>%player% <#ff6b8f>logged out while frozen!" to loop-player
+
+# --- Command: /clearchat ---
+command /clearchat:
+    aliases: /cc
+    permission: staff.clearchat
+    permission message: {@prefix}<#ff6b8f>Access denied.
+    description: Clear global chat to wipe spam or offensive links.
+    trigger:
+        loop 100 times:
+            broadcast " "
+        broadcast "{@prefix}Chat was cleared by a staff member."
+        play sound "entity.experience_orb.pickup" with volume 1 and pitch 1 at all players

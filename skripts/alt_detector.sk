@@ -1,0 +1,7 @@
+on join:
+    set {_ip} to player's IP
+    add player's name to {alts::%{_ip}%::*}
+    if size of {alts::%{_ip}%::*} > 1:
+        loop all players:
+            if loop-player has permission "staff.alts":
+                send "<#ff6b8f>&l[ALT DETECTED] <#fcf4ff>%player% <#cfc3e6>shares IP with: %{alts::%{_ip}%::*}%" to loop-player

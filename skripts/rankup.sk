@@ -1,0 +1,67 @@
+# ==============================================================================
+# Script: rankup.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: In-Game Rank Progression. Lets free-to-play players purchase
+#              permanent server ranks using in-game coins (VIP -> MVP -> ELITE).
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffd700>&lRANKUP <#888888>» <#cfc3e6>
+
+# --- Command: /rankup ---
+command /rankup:
+    description: Purchase the next in-game rank tier using your coins.
+    trigger:
+        set {_uuid} to player's uuid
+        set {_currentRank} to {eco::rank::%{_uuid}%} ? "Member"
+        
+        # Rank: Member -> VIP ($50,000)
+        if {_currentRank} is "Member":
+            set {_cost} to 50000
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>You need <#a6ffcb>%fmtMoney({_cost})% <#ff6b8f>to rankup to <#a6ffcb>&lVIP<#ff6b8f>!" to player
+                stop
+            removeBal(player, {_cost})
+            set {eco::rank::%{_uuid}%} to "VIP"
+            broadcast " "
+            broadcast "{@prefix}<#fcf4ff>%player% <#cfc3e6>ranked up to <#a6ffcb>&l[VIP] <#cfc3e6>using in-game coins!"
+            broadcast " "
+            play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 at player
+            
+        # Rank: VIP -> MVP ($250,000)
+        else if {_currentRank} is "VIP":
+            set {_cost} to 250000
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>You need <#a6ffcb>%fmtMoney({_cost})% <#ff6b8f>to rankup to <#c3a6ff>&lMVP<#ff6b8f>!" to player
+                stop
+            removeBal(player, {_cost})
+            set {eco::rank::%{_uuid}%} to "MVP"
+            broadcast " "
+            broadcast "{@prefix}<#fcf4ff>%player% <#cfc3e6>ranked up to <#c3a6ff>&l[MVP] <#cfc3e6>using in-game coins!"
+            broadcast " "
+            play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 at player
+            
+        # Rank: MVP -> ELITE ($1,000,000)
+        else if {_currentRank} is "MVP":
+            set {_cost} to 1000000
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>You need <#a6ffcb>%fmtMoney({_cost})% <#ff6b8f>to rankup to <#ffd700>&lELITE<#ff6b8f>!" to player
+                stop
+            removeBal(player, {_cost})
+            set {eco::rank::%{_uuid}%} to "ELITE"
+            broadcast " "
+            broadcast "{@prefix}<#fcf4ff>%player% <#cfc3e6>ranked up to <#ffd700>&l[ELITE] <#cfc3e6>using in-game coins!"
+            broadcast " "
+            play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 at player
+        else:
+            send "{@prefix}You have already achieved the highest in-game rank (<#ffd700>&lELITE<#cfc3e6>)!" to player
+
+# Check rank command /myrank
+command /myrank:
+    description: View your current rank status.
+    trigger:
+        set {_rank} to {eco::rank::%player's uuid%} ? "Member"
+        send "{@prefix}Your current in-game rank is: <#ffd700>&l%{_rank}%" to player

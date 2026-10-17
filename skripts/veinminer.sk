@@ -1,0 +1,14 @@
+options:
+    max-vein: 16
+
+on break:
+    player is sneaking
+    set {_tool} to player's tool
+    if {_tool} is any pickaxe:
+        set {_ore} to event-block
+        if {_ore} is any ore:
+            set {_loc} to location of event-block
+            loop blocks in radius 3 around {_loc}:
+                if loop-block is {_ore}:
+                    break loop-block naturally using {_tool}
+                    damage {_tool} by 1

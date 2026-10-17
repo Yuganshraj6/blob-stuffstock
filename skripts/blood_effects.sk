@@ -1,0 +1,4 @@
+on damage:
+    victim is a player
+    spawn 10 of block using redstone block at victim's location
+    play sound "entity.player.hurt" with volume 0.5 and pitch 0.8 at victim

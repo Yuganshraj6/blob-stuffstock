@@ -1,0 +1,6 @@
+on chat:
+    if message is {chat::last::%player's uuid%}:
+        cancel event
+        send "<#ff6b8f>Please do not repeat the exact same message!" to player
+        stop
+    set {chat::last::%player's uuid%} to message

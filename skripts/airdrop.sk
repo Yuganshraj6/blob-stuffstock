@@ -1,0 +1,12 @@
+options:
+    prefix: <#a6ffcb>&lAIRDROP <#888888>» <#cfc3e6>
+
+command /airdrop:
+    permission: airdrop.admin
+    description: Spawn a supply drop at player location.
+    trigger:
+        set {_loc} to player's location
+        set block at {_loc} to chest
+        add 10 of diamond to inventory of block at {_loc}
+        add 2 of golden apple to inventory of block at {_loc}
+        broadcast "{@prefix}A supply airdrop landed at <#ffd700>%{_loc}%<#cfc3e6>!"

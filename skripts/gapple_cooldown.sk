@@ -1,0 +1,12 @@
+options:
+    cooldown: 30 seconds
+    prefix: <#ffd700>&lGAPPLE <#888888>» <#cfc3e6>
+
+on consume of enchanted golden apple:
+    set {_uuid} to player's uuid
+    if {gapple::cd::%{_uuid}%} is set:
+        if difference between {gapple::cd::%{_uuid}%} and now < {@cooldown}:
+            cancel event
+            send "{@prefix}<#ff6b8f>God Apple on cooldown!" to player
+            stop
+    set {gapple::cd::%{_uuid}%} to now

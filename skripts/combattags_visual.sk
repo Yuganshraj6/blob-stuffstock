@@ -1,0 +1,5 @@
+on damage:
+    attacker is a player
+    victim is a player
+    send action bar "<#ff6b8f>&l[COMBAT] <#fcf4ff>15s Remaining" to attacker
+    send action bar "<#ff6b8f>&l[COMBAT] <#fcf4ff>15s Remaining" to victim

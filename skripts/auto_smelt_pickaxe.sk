@@ -1,0 +1,8 @@
+on break:
+    name of player's tool contains "Auto-Smelt"
+    if event-block is iron ore or deepslate iron ore:
+        cancel drops
+        drop 1 of iron ingot at event-location
+    else if event-block is gold ore or deepslate gold ore:
+        cancel drops
+        drop 1 of gold ingot at event-location

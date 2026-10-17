@@ -1,0 +1,11 @@
+options:
+    prefix: <#ffd700>&lKOTH <#888888>» <#cfc3e6>
+
+command /koth [<text>]:
+    permission: koth.admin
+    description: King of the Hill game trigger.
+    trigger:
+        broadcast " "
+        broadcast "{@prefix}<#ffd700>&lKING OF THE HILL EVENT HAS STARTED!"
+        broadcast "{@prefix}Capture the point at spawn for 5 minutes to win!"
+        broadcast " "

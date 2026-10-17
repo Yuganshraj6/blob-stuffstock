@@ -1,0 +1,10 @@
+on break:
+    player's tool is any axe
+    event-block is any log
+    set {_loc} to location of event-block
+    loop blocks above {_loc}:
+        if loop-block is any log:
+            break loop-block naturally using player's tool
+            damage player's tool by 1
+        else:
+            stop loop

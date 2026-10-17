@@ -1,0 +1,5 @@
+command /invsee <player>:
+    permission: staff.invsee
+    description: Inspect a player inventory in real-time.
+    trigger:
+        open inventory of arg-1 to player

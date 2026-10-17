@@ -1,0 +1,20 @@
+on jump:
+    set {_b} to block below player
+    if {_b} is any wool:
+        set {_color} to type of {_b}
+        loop blocks above player:
+            if loop-block is {_color}:
+                teleport player to block above loop-block
+                play sound "entity.enderman.teleport" with volume 0.8 and pitch 1.6 at player
+                stop loop
+
+on sneak toggle:
+    player is not sneaking
+    set {_b} to block below player
+    if {_b} is any wool:
+        set {_color} to type of {_b}
+        loop blocks below block below player:
+            if loop-block is {_color}:
+                teleport player to block above loop-block
+                play sound "entity.enderman.teleport" with volume 0.8 and pitch 1.2 at player
+                stop loop

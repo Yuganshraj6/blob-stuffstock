@@ -1,0 +1,47 @@
+# ==============================================================================
+# Script: salvage.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Item Scrapper & Recycler. Salvage unwanted weapons, tools, and
+#              armor for scrap refunds based on material tier and durability.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#a6ffcb>&lSALVAGE <#888888>» <#cfc3e6>
+
+# /salvage hand
+command /salvage [<text=hand>]:
+    aliases: /recycle, /scrap
+    description: Salvage held armor or weapon into coins and materials.
+    trigger:
+        set {_tool} to player's tool
+        if {_tool} is air:
+            send "{@prefix}<#ff6b8f>Hold the tool, armor, or weapon you want to salvage!" to player
+            stop
+            
+        set {_type} to "%type of {_tool}%"
+        set {_refund} to 0
+        
+        # Netherite tier
+        if {_type} contains "netherite":
+            set {_refund} to 2500
+        # Diamond tier
+        else if {_type} contains "diamond":
+            set {_refund} to 500
+        # Iron tier
+        else if {_type} contains "iron":
+            set {_refund} to 75
+        # Gold tier
+        else if {_type} contains "golden" or {_type} contains "gold":
+            set {_refund} to 40
+        else:
+            send "{@prefix}<#ff6b8f>This item cannot be salvaged." to player
+            stop
+            
+        set player's tool to air
+        addBal(player, {_refund})
+        
+        send "{@prefix}Salvaged your %{_type}% for <#a6ffcb>%fmtMoney({_refund})%<#cfc3e6>!" to player
+        play sound "block.grindstone.use" with volume 1 and pitch 1 at player

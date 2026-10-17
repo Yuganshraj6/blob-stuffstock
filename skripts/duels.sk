@@ -1,0 +1,13 @@
+options:
+    prefix: <#c3a6ff>&lDUELS <#888888>» <#cfc3e6>
+
+command /duel <player>:
+    description: Send a 1v1 duel invite to a player.
+    trigger:
+        set {_target} to arg-1
+        if {_target} is player:
+            send "{@prefix}<#ff6b8f>You cannot duel yourself!" to player
+            stop
+        set {duel::req::%player's uuid%} to {_target}
+        send "{@prefix}Duel challenge sent to <#c3a6ff>%{_target}%<#cfc3e6>!" to player
+        send "{@prefix}<#c3a6ff>%player% <#cfc3e6>has challenged you to a 1v1 Duel!" to {_target}

@@ -1,0 +1,9 @@
+on shoot:
+    shooter is a player
+    name of shooter's tool contains "Lightning Bow"
+    set {proj::lightning::%projectile%} to true
+
+on projectile hit:
+    if {proj::lightning::%projectile%} is true:
+        strike lightning effect at projectile
+        delete {proj::lightning::%projectile%}

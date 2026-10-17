@@ -1,0 +1,104 @@
+# ==============================================================================
+# Script: bounties.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: DonutSMP-style Player Bounty system. Place cash bounties on rivals,
+#              browse the Most Wanted list, and claim payouts upon killing targets.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ff6b8f>&lBOUNTY <#888888>» <#cfc3e6>
+    min-bounty: 500
+    gui-title: <#181223>&lMOST WANTED BOUNTIES
+
+# Open the Most Wanted GUI
+function openBountiesGUI(p: player):
+    set {_inv} to a new chest inventory with 5 rows named "{@gui-title}"
+    
+    # Border
+    set {_s} to 36
+    while {_s} < 45:
+        set slot {_s} of {_inv} to gray stained glass pane named " "
+        add 1 to {_s}
+        
+    set slot 40 of {_inv} to netherite sword named "<#ff6b8f>&lPlace a Bounty" with lore "<#cfc3e6>Hunt your rivals for cash!", "<#888888>Command: /bounty <player> <amount>"
+    
+    set {_slot} to 0
+    loop {bounty::pool::*}:
+        set {_targetUUID} to loop-index
+        set {_amount} to loop-value
+        if {_amount} > 0:
+            if {_slot} < 36:
+                set {_targetPlayer} to ({_targetUUID} parsed as offline player)
+                set {_skull} to skull of {_targetPlayer} named "<#ff6b8f>&l%{_targetPlayer}%" with lore "<#888888>▪ <#cfc3e6>Bounty: <#ffd700>%fmtMoney({_amount})%", "<#888888>▪ <#cfc3e6>Status: %{_targetPlayer} is online ? '<#a6ffcb>Online' : '<#888888>Offline'%", " ", "<#ff6b8f>Eliminate this player to claim!"
+                
+                set slot {_slot} of {_inv} to {_skull}
+                add 1 to {_slot}
+                
+    open {_inv} to {_p}
+
+# Cancel click events inside the GUI
+on inventory click:
+    if name of event-inventory is "{@gui-title}":
+        cancel event
+
+# --- Command: /bounty ---
+command /bounty [<text>] [<offline player>] [<number>]:
+    aliases: /bounties
+    description: Place or view active bounties on players.
+    usage: /bounty [add <player> <amount>]
+    trigger:
+        set {_sub} to lower text of arg-1
+        
+        # Place bounty
+        if {_sub} is "add" or "set" or "place":
+            set {_target} to arg-2
+            set {_amount} to arg-3
+            
+            if {_target} is not set or {_amount} is not set:
+                send "{@prefix}Usage: <#ff6b8f>/bounty add <player> <amount>" to player
+                stop
+                
+            if {_target} is player:
+                send "{@prefix}<#ff6b8f>You cannot set a bounty on yourself!" to player
+                stop
+                
+            if {_amount} < {@min-bounty}:
+                send "{@prefix}<#ff6b8f>Minimum bounty is <#ffd700>%fmtMoney({@min-bounty})%<#ff6b8f>." to player
+                stop
+                
+            if hasBal(player, {_amount}) is false:
+                send "{@prefix}<#ff6b8f>Insufficient funds! You only have <#a6ffcb>%fmtMoney(getBal(player))%<#ff6b8f>." to player
+                stop
+                
+            removeBal(player, {_amount})
+            
+            set {_targetUUID} to {_target}'s uuid
+            add {_amount} to {bounty::pool::%{_targetUUID}%}
+            
+            broadcast " "
+            broadcast "{@prefix}<#fcf4ff>%player% <#cfc3e6>placed a <#ffd700>%fmtMoney({_amount})% <#cfc3e6>bounty on <#ff6b8f>&l%{_target}%<#cfc3e6>!"
+            broadcast "{@prefix}Total Bounty Pool: <#ffd700>%fmtMoney({bounty::pool::%{_targetUUID}%})%"
+            broadcast " "
+            play sound "entity.wither.spawn" with volume 0.5 and pitch 1.8 at all players
+            
+        else:
+            openBountiesGUI(player)
+
+# --- Claim Bounty on Player Kill ---
+on death of player:
+    attacker is a player
+    victim is a player
+    set {_victimUUID} to victim's uuid
+    set {_bounty} to {bounty::pool::%{_victimUUID}%}
+    
+    if {_bounty} > 0:
+        delete {bounty::pool::%{_victimUUID}%}
+        addBal(attacker, {_bounty})
+        
+        broadcast " "
+        broadcast "{@prefix}<#a6ffcb>&l%{attacker}% <#cfc3e6>eliminated <#ff6b8f>%victim% <#cfc3e6>and claimed their <#ffd700>&l%fmtMoney({_bounty})% <#cfc3e6>bounty!"
+        broadcast " "
+        play sound "entity.player.levelup" with volume 1 and pitch 1.2 at attacker

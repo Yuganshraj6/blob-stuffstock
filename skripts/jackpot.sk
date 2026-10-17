@@ -1,0 +1,75 @@
+# ==============================================================================
+# Script: jackpot.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Hourly Server-Wide Lottery Pot. Players purchase tickets to grow
+#              the jackpot pool; a winner is selected every hour.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffd700>&lJACKPOT <#888888>» <#cfc3e6>
+    ticket-price: 1000
+    server-cut: 0.15 # 15% burned by server
+
+# Buy tickets command /jackpot
+command /jackpot [<text>] [<integer=1>]:
+    aliases: /lottery
+    description: Buy lottery tickets or view the current jackpot pool.
+    usage: /jackpot [buy <tickets>]
+    trigger:
+        set {_action} to lower text of arg-1
+        
+        if {_action} is "buy":
+            set {_tickets} to arg-2
+            if {_tickets} <= 0:
+                send "{@prefix}<#ff6b8f>Must buy at least 1 ticket!" to player
+                stop
+                
+            set {_cost} to {_tickets} * {@ticket-price}
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>Insufficient funds! You need <#a6ffcb>%fmtMoney({_cost})%<#ff6b8f>." to player
+                stop
+                
+            removeBal(player, {_cost})
+            
+            # Add tickets to pool
+            loop {_tickets} times:
+                add player to {jackpot::tickets::*}
+                
+            add {_cost} to {jackpot::total_pot}
+            
+            send "{@prefix}Purchased <#ffd700>%{_tickets}%x tickets <#cfc3e6>for <#a6ffcb>%fmtMoney({_cost})%<#cfc3e6>!" to player
+            broadcast "{@prefix}<#fcf4ff>%player% <#cfc3e6>bought <#ffd700>%{_tickets}% <#cfc3e6>tickets! Current Jackpot: <#ffd700>&l%fmtMoney({jackpot::total_pot})%"
+            play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.4 at player
+        else:
+            set {_pot} to {jackpot::total_pot} ? 0
+            set {_tickets} to size of {jackpot::tickets::*}
+            send " " to player
+            send "<#ffd700>&lSERVER JACKPOT POOL" to player
+            send "<#888888>▪ <#cfc3e6>Current Pot: <#ffd700>&l%fmtMoney({_pot})%" to player
+            send "<#888888>▪ <#cfc3e6>Total Tickets Sold: <#a6ffcb>%{_tickets}% tickets" to player
+            send "<#888888>▪ <#cfc3e6>Ticket Price: <#a6ffcb>$1,000 each" to player
+            send "  <#cfc3e6>Use <#ffd700>/jackpot buy <amount> <#cfc3e6>to enter!" to player
+            send " " to player
+
+# Hourly Jackpot Roll Engine
+every 1 hour:
+    if size of {jackpot::tickets::*} > 0:
+        set {_winner} to a random element out of {jackpot::tickets::*}
+        set {_pot} to {jackpot::total_pot}
+        set {_burn} to {_pot} * {@server-cut}
+        set {_payout} to {_pot} - {_burn}
+        
+        delete {jackpot::tickets::*}
+        set {jackpot::total_pot} to 0
+        
+        addBal({_winner}, {_payout})
+        
+        broadcast " "
+        broadcast "{@prefix}<#ffd700>&lJACKPOT DRAWING COMPLETED!"
+        broadcast "{@prefix}The winner of <#ffd700>&l%fmtMoney({_payout})% <#cfc3e6>is <#a6ffcb>&l%{_winner}%<#cfc3e6>!"
+        broadcast "{@prefix}<#888888>(Server burned %fmtMoney({_burn})% to control inflation)"
+        broadcast " "
+        play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 at all players

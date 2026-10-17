@@ -1,0 +1,2 @@
+on server list ping:
+    set motd to "<#ffb3dd>&lStuffStock SMP <#888888>» <#a6ffcb>v1.20 - 1.21\n<#cfc3e6>High Performance Survival & Economy"

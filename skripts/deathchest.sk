@@ -1,0 +1,11 @@
+options:
+    prefix: <#ff6b8f>&lGRAVE <#888888>» <#cfc3e6>
+
+on death of player:
+    set {_loc} to location of victim
+    set block at {_loc} to chest
+    set {_inv} to inventory of block at {_loc}
+    loop drops:
+        add loop-item to {_inv}
+    clear drops
+    send "{@prefix}Your items were locked in a grave chest at <#ffd700>%{_loc}%<#cfc3e6>!" to victim

@@ -1,0 +1,5 @@
+every 2 seconds:
+    loop all players:
+        if name of loop-player's offhand tool contains "Magnet Totem":
+            loop dropped items in radius 7 around loop-player:
+                teleport loop-value-2 to loop-player

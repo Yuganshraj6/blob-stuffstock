@@ -1,0 +1,5 @@
+on right click with feather:
+    name of player's tool contains "Dash Feather"
+    push player forward at speed 1.8
+    push player upward at speed 0.2
+    play sound "entity.warden.sonic_boom" with volume 0.5 and pitch 1.8 at player

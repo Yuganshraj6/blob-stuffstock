@@ -1,0 +1,5 @@
+on walk on slime block:
+    block below event-block is redstone block
+    push player upward at speed 1.5
+    push player forward at speed 2.0
+    play sound "entity.bat.takeoff" with volume 1 and pitch 1.2 at player

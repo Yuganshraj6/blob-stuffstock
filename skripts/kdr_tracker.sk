@@ -1,0 +1,19 @@
+on death of player:
+    attacker is a player
+    victim is a player
+    add 1 to {kdr::kills::%attacker's uuid%}
+    add 1 to {kdr::deaths::%victim's uuid%}
+
+command /kdr [<offline player>]:
+    description: View your PvP Kills and Deaths ratio.
+    trigger:
+        set {_t} to player
+        if arg-1 is set:
+            set {_t} to arg-1
+        set {_k} to {kdr::kills::%{_t}'s uuid%} ? 0
+        set {_d} to {kdr::deaths::%{_t}'s uuid%} ? 0
+        set {_ratio} to {_k} / max(1, {_d})
+        send "<#ff6b8f>&lKDR STATS <#888888>» <#fcf4ff>%{_t}%" to player
+        send "  <#888888>▪ <#cfc3e6>Kills: <#a6ffcb>%{_k}%" to player
+        send "  <#888888>▪ <#cfc3e6>Deaths: <#ff6b8f>%{_d}%" to player
+        send "  <#888888>▪ <#cfc3e6>Ratio: <#ffd700>%{_ratio}%" to player

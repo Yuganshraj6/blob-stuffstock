@@ -1,0 +1,3 @@
+on walk on heavy weighted pressure plate:
+    send "<#a6ffcb>&lPARKOUR <#888888>» <#cfc3e6>Checkpoint reached!" to player
+    play sound "block.note_block.pling" with volume 1 and pitch 1.8 at player
