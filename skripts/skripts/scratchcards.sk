@@ -1,0 +1,89 @@
+# ==============================================================================
+# Script: scratchcards.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Consumable Scratch Cards. Bronze, Silver, and Gold lottery cards
+#              with chances for 2x, 5x, 10x, and 50x multipliers.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffd700>&lSCRATCH CARD <#888888>» <#cfc3e6>
+
+# /scratchcard buy <bronze|silver|gold>
+command /scratchcard [<text>]:
+    aliases: /scratch, /scratchcards
+    description: Buy a lottery scratch card.
+    usage: /scratchcard <bronze|silver|gold>
+    trigger:
+        set {_tier} to "%arg-1%" in lower case
+        
+        if {_tier} is "bronze":
+            set {_cost} to 1000
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>You need <#a6ffcb>$1,000 <#ff6b8f>to buy a Bronze card!" to player
+                stop
+            removeBal(player, {_cost})
+            give 1 of paper named "<#cd7f32>&lBRONZE SCRATCH CARD" with lore "<#888888>Cost: $1,000" and "<#ffd700>[Right-Click] <#cfc3e6>to scratch and reveal prize!" to player
+            send "{@prefix}Purchased a <#cd7f32>Bronze Scratch Card<#cfc3e6>!" to player
+            
+        else if {_tier} is "silver":
+            set {_cost} to 5000
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>You need <#a6ffcb>$5,000 <#ff6b8f>to buy a Silver card!" to player
+                stop
+            removeBal(player, {_cost})
+            give 1 of paper named "<#c0c0c0>&lSILVER SCRATCH CARD" with lore "<#888888>Cost: $5,000" and "<#ffd700>[Right-Click] <#cfc3e6>to scratch and reveal prize!" to player
+            send "{@prefix}Purchased a <#c0c0c0>Silver Scratch Card<#cfc3e6>!" to player
+            
+        else if {_tier} is "gold":
+            set {_cost} to 25000
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>You need <#a6ffcb>$25,000 <#ff6b8f>to buy a Gold card!" to player
+                stop
+            removeBal(player, {_cost})
+            give 1 of paper named "<#ffd700>&lGOLD SCRATCH CARD" with lore "<#888888>Cost: $25,000" and "<#ffd700>[Right-Click] <#cfc3e6>to scratch and reveal prize!" to player
+            send "{@prefix}Purchased a <#ffd700>Gold Scratch Card<#cfc3e6>!" to player
+        else:
+            send " " to player
+            send "<#ffd700>&lAVAILABLE SCRATCH CARDS:" to player
+            send "  <#cd7f32>▪ /scratchcard bronze <#888888>($1,000 - up to $10,000 prize)" to player
+            send "  <#c0c0c0>▪ /scratchcard silver <#888888>($5,000 - up to $50,000 prize)" to player
+            send "  <#ffd700>▪ /scratchcard gold <#888888>($25,000 - up to $500,000 prize)" to player
+            send " " to player
+
+# Right-click scratching event
+on right click with paper:
+    set {_name} to name of player's tool
+    if {_name} contains "SCRATCH CARD":
+        cancel event
+        remove 1 of player's tool from player's inventory
+        
+        # Roll prize multiplier: 0x (loss), 1.5x, 2x, 5x, 10x, 20x
+        set {_roll} to a random integer between 1 and 100
+        set {_mult} to 0
+        
+        if {_roll} > 95:
+            set {_mult} to 10 # 5% chance of 10x
+        else if {_roll} > 80:
+            set {_mult} to 4 # 15% chance of 4x
+        else if {_roll} > 55:
+            set {_mult} to 2 # 25% chance of 2x
+        else if {_roll} > 35:
+            set {_mult} to 1 # 20% break even
+            
+        set {_base} to 1000
+        if {_name} contains "SILVER":
+            set {_base} to 5000
+        else if {_name} contains "GOLD":
+            set {_base} to 25000
+        set {_payout} to {_base} * {_mult}
+        
+        if {_payout} > 0:
+            addBal(player, {_payout})
+            send "{@prefix}🎉 Scratched: <#ffd700>%{_mult}%x MULTIPLIER! <#cfc3e6>Won <#a6ffcb>%fmtMoney({_payout})%<#cfc3e6>!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.6 at player
+        else:
+            send "{@prefix}<#ff6b8f>Better luck next time! Your card was not a winner." to player
+            play sound "block.note_block.bass" with volume 1 and pitch 0.8 at player

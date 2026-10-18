@@ -1,0 +1,94 @@
+# ==============================================================================
+# Script: bank.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Virtual Bank Account system. Money in the bank is safe from death
+#              drops and earns daily interest.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#a6ffcb>&lBANK <#888888>» <#cfc3e6>
+    interest-rate: 0.01 # 1% daily interest
+    max-bank-cap: 50000000 # $50M maximum interest limit
+
+# Get player's bank vault balance
+function getBankBal(p: offline player) :: number:
+    set {_uuid} to {_p}'s uuid
+    if {eco::bank::%{_uuid}%} is not set:
+        set {eco::bank::%{_uuid}%} to 0
+    return {eco::bank::%{_uuid}%}
+
+# --- Command: /bank ---
+command /bank [<text>] [<number>]:
+    description: Access your bank account to deposit, withdraw, or view balance.
+    usage: /bank [deposit|withdraw] [amount]
+    trigger:
+        set {_action} to "%arg-1%" in lower case
+        set {_amount} to arg-2
+        set {_uuid} to player's uuid
+        
+        # View bank info
+        if {_action} is not set or {_action} is "balance" or "bal":
+            set {_wallet} to getBal(player)
+            set {_bank} to getBankBal(player)
+            
+            send " " to player
+            send "<#a6ffcb>&lFIRST NATIONAL SERVER BANK" to player
+            send "<#888888>▪ <#cfc3e6>Pocket Wallet: <#ffd700>%fmtMoney({_wallet})%" to player
+            send "<#888888>▪ <#cfc3e6>Bank Vault: <#a6ffcb>%fmtMoney({_bank})%" to player
+            send "<#888888>▪ <#cfc3e6>Daily Interest: <#a6ffcb>1.0%% / day" to player
+            send " " to player
+            send "  <#cfc3e6>Commands: <#a6ffcb>/bank deposit <amount> <#888888>| <#a6ffcb>/bank withdraw <amount>" to player
+            send " " to player
+            
+        # Deposit money
+        else if {_action} is "deposit" or "dep":
+            if {_amount} <= 0:
+                send "{@prefix}<#ff6b8f>Amount must be greater than 0!" to player
+                stop
+                
+            if hasBal(player, {_amount}) is false:
+                send "{@prefix}<#ff6b8f>You don't have <#ffd700>%fmtMoney({_amount})% <#ff6b8f>in your wallet!" to player
+                stop
+                
+            removeBal(player, {_amount})
+            add {_amount} to {eco::bank::%{_uuid}%}
+            
+            send "{@prefix}Deposited <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>into your bank vault." to player
+            send "{@prefix}New Bank Balance: <#a6ffcb>%fmtMoney(getBankBal(player))%" to player
+            play sound "block.iron_door.open" with volume 1 and pitch 1.2 at player
+            
+        # Withdraw money
+        else if {_action} is "withdraw" or "with":
+            if {_amount} <= 0:
+                send "{@prefix}<#ff6b8f>Amount must be greater than 0!" to player
+                stop
+                
+            set {_bank} to getBankBal(player)
+            if {_bank} < {_amount}:
+                send "{@prefix}<#ff6b8f>You only have <#a6ffcb>%fmtMoney({_bank})% <#ff6b8f>in your bank vault!" to player
+                stop
+                
+            subtract {_amount} from {eco::bank::%{_uuid}%}
+            addBal(player, {_amount})
+            
+            send "{@prefix}Withdrew <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>from your bank vault." to player
+            send "{@prefix}New Wallet Balance: <#ffd700>%fmtMoney(getBal(player))%" to player
+            play sound "block.iron_door.close" with volume 1 and pitch 1.2 at player
+        else:
+            send "{@prefix}Usage: <#a6ffcb>/bank <deposit|withdraw> <amount>" to player
+
+# Daily Interest Payout Engine (Runs every 24 hours)
+every 24 hours:
+    loop {eco::bank::*}:
+        set {_uuid} to loop-index
+        set {_balance} to loop-value
+        if {_balance} > 0:
+            set {_interest} to min({_balance}, {@max-bank-cap}) * {@interest-rate}
+            add {_interest} to {eco::bank::%{_uuid}%}
+            
+            set {_p} to ({_uuid} parsed as offline player)
+            if {_p} is online:
+                send "{@prefix}Daily interest paid! <#a6ffcb>+%fmtMoney({_interest})% <#cfc3e6>deposited to your bank." to {_p}

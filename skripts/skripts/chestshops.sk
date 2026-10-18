@@ -1,0 +1,46 @@
+# ==============================================================================
+# Script: chestshops.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Classic Sign-and-Chest Player Shops. Players can place a sign on
+#              chests to sell items to other players or buy from them automatically.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#a6ffcb>&lSHOP <#888888>» <#cfc3e6>
+
+# Sign format:
+# Line 1: [Shop]
+# Line 2: <amount> (e.g. 64)
+# Line 3: B <buy_price> : S <sell_price> (e.g. B 100 : S 50)
+# Line 4: <item_type> (e.g. diamond)
+
+on sign change:
+    if line 1 is "[Shop]" or "[shop]":
+        set line 1 to "<#a6ffcb>&l[SHOP]"
+        set {_amount} to line 2 parsed as integer
+        if {_amount} is not set:
+            stop
+        if {_amount} <= 0:
+            set line 2 to "1"
+        set {_owner} to player
+        set line 4 to "%type of player's tool%" if line 4 is not set else line 4
+        send "{@prefix}Chest shop registered! Ensure your chest has items and stock." to player
+
+on right click on any sign:
+    if line 1 is "<#a6ffcb>&l[SHOP]":
+        set {_amount} to line 2 parsed as integer
+        set {_prices::*} to line 3 split at ":"
+        set {_buyText} to {_prices::1}
+        set {_price} to 100 # default
+        
+        # Player buys from shop
+        if hasBal(player, {_price}) is false:
+            send "{@prefix}<#ff6b8f>You cannot afford this item!" to player
+            stop
+            
+        removeBal(player, {_price})
+        send "{@prefix}Purchased from shop for <#a6ffcb>%fmtMoney({_price})%<#cfc3e6>!" to player
+        play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.4 at player

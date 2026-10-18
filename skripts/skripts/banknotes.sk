@@ -1,0 +1,75 @@
+# ==============================================================================
+# Script: banknotes.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Withdraw money into physical redeemable banknotes/cheques.
+#              Signed by the issuer, right-click to redeem.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffd700>&lBANKNOTE <#888888>» <#cfc3e6>
+    min-withdraw: 100
+    max-withdraw: 1000000000 # 1 Billion max per banknote
+
+# --- Command: /withdraw (/banknote, /cheque) ---
+command /withdraw <number>:
+    aliases: /banknote, /cheque, /note
+    description: Withdraw cash from your balance into a physical bank note.
+    usage: /withdraw <amount>
+    trigger:
+        set {_amount} to arg-1
+        
+        if {_amount} < {@min-withdraw}:
+            send "{@prefix}<#ff6b8f>Minimum withdraw amount is <#ffd700>%fmtMoney({@min-withdraw})%<#ff6b8f>." to player
+            stop
+            
+        if {_amount} > {@max-withdraw}:
+            send "{@prefix}<#ff6b8f>Maximum withdraw per note is <#ffd700>%fmtMoney({@max-withdraw})%<#ff6b8f>." to player
+            stop
+            
+        if hasBal(player, {_amount}) is false:
+            send "{@prefix}<#ff6b8f>Insufficient funds! You only have <#a6ffcb>%fmtMoney(getBal(player))%<#ff6b8f>." to player
+            stop
+            
+        if player cannot hold 1 of paper:
+            send "{@prefix}<#ff6b8f>Your inventory is full!" to player
+            stop
+            
+        removeBal(player, {_amount})
+        
+        # Create unique physical banknote
+        set {_note} to paper named "<#ffd700>&lBANKNOTE <#888888>• <#a6ffcb>%fmtMoney({_amount})%" with lore "<#888888>▪ <#cfc3e6>Value: <#a6ffcb>%fmtMoney({_amount})% <#888888>(%{_amount}%)", "<#888888>▪ <#cfc3e6>Signer: <#fcf4ff>%player%", "<#888888>▪ <#cfc3e6>Issued: <#888888>%now%", " " and "<#ffd700>[Right-Click] <#cfc3e6>to deposit into balance"
+        
+        give 1 of {_note} to player
+        send "{@prefix}Withdrew <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>into a physical banknote." to player
+        play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.4 at player
+
+# --- Redeem Banknote Event ---
+on right click with paper:
+    set {_item} to player's tool
+    set {_name} to name of {_item}
+    if {_name} starts with "<#ffd700>&lBANKNOTE":
+        cancel event
+        
+        # Parse value from lore line 1
+        set {_lore::*} to lore of {_item}
+        set {_valLine} to {_lore::1}
+        set {_parts::*} to {_valLine} split at "("
+        set {_subParts::*} to {_parts::2} split at ")"
+        set {_amount} to {_subParts::1} parsed as number
+        
+        if {_amount} is not set:
+            send "{@prefix}<#ff6b8f>Invalid or counterfeit banknote!" to player
+            stop
+        if {_amount} <= 0:
+            send "{@prefix}<#ff6b8f>Invalid or counterfeit banknote!" to player
+            stop
+            
+        # Consume 1 banknote
+        remove 1 of {_item} from player's inventory
+        addBal(player, {_amount})
+        
+        send "{@prefix}Deposited <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>into your account!" to player
+        play sound "entity.player.levelup" with volume 1 and pitch 1.8 at player

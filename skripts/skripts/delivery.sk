@@ -1,0 +1,81 @@
+# ==============================================================================
+# Script: delivery.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Offline Player Mailbox & Gifts system. Send money and items to
+#              friends even when they are offline (/mail send).
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffd700>&lMAILBOX <#888888>» <#cfc3e6>
+
+# /mail send <player> <amount> [message]
+command /mail <text> [<offline player>] [<number>] [<text>]:
+    description: Send cash gifts or check your delivery mailbox.
+    usage: /mail <send|box|claim>
+    trigger:
+        set {_action} to "%arg-1%" in lower case
+        
+        if {_action} is "send":
+            set {_target} to arg-2
+            set {_amount} to arg-3
+            set {_msg} to arg-4
+            if {_msg} is not set:
+                set {_msg} to "A gift for you!"
+            
+            if {_target} is not set:
+                send "{@prefix}<#ff6b8f>Usage: /mail send <player> <amount> [message]" to player
+                stop
+            if {_amount} is not set:
+                send "{@prefix}<#ff6b8f>Please specify an amount!" to player
+                stop
+            if {_amount} <= 0:
+                send "{@prefix}Usage: <#ffd700>/mail send <player> <amount> [message]" to player
+                stop
+                
+            if {_target} is player:
+                send "{@prefix}<#ff6b8f>You cannot send mail to yourself!" to player
+                stop
+                
+            if hasBal(player, {_amount}) is false:
+                send "{@prefix}<#ff6b8f>Insufficient funds! You only have <#a6ffcb>%fmtMoney(getBal(player))%<#ff6b8f>." to player
+                stop
+                
+            removeBal(player, {_amount})
+            
+            set {_targetUUID} to {_target}'s uuid
+            add {_amount} to {mail::pending_cash::%{_targetUUID}%}
+            add "%player%: %{_msg}% (%fmtMoney({_amount})%)" to {mail::messages::%{_targetUUID}%::*}
+            
+            send "{@prefix}Sent <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>to <#ffd700>%{_target}%<#cfc3e6>'s mailbox!" to player
+            if {_target} is online:
+                send "{@prefix}<#ffd700>%player% <#cfc3e6>sent you mail with <#a6ffcb>%fmtMoney({_amount})%<#cfc3e6>! Type <#ffd700>/mailbox <#cfc3e6>to claim." to {_target}
+                
+        else if {_action} is "claim" or "box":
+            set {_uuid} to player's uuid
+            set {_cash} to {mail::pending_cash::%{_uuid}%} ? 0
+            
+            if {_cash} <= 0:
+            if size of {mail::messages::%{_uuid}%::*} <= 0:
+                send "{@prefix}<#888888>Your mailbox is currently empty." to player
+                stop
+                send "{@prefix}<#ff6b8f>Your mailbox is currently empty." to player
+                stop
+                
+            if {_cash} > 0:
+                delete {mail::pending_cash::%{_uuid}%}
+                addBal(player, {_cash})
+                send "{@prefix}Claimed <#a6ffcb>%fmtMoney({_cash})% <#cfc3e6>from your mailbox!" to player
+                play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player
+                
+            send "<#ffd700>&lYOUR MAILBOX MESSAGES:" to player
+            loop {mail::messages::%{_uuid}%::*}:
+                send "  <#888888>▪ <#cfc3e6>%loop-value%" to player
+            delete {mail::messages::%{_uuid}%::*}
+
+command /mailbox:
+    description: Quick alias to claim pending delivery mailbox gifts.
+    trigger:
+        execute player command "/mail claim"

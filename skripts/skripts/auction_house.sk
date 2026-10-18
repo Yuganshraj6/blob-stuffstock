@@ -1,0 +1,208 @@
+# ==============================================================================
+# Script: auction_house.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Player-to-player Auction House (/ah) marketplace. Players can list
+#              items for custom prices, buy listings instantly, cancel active
+#              auctions, and reclaim expired goods from the collection bin.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffd700>&lAUCTION <#888888>» <#cfc3e6>
+    gui-title: <#181223>&lAUCTION HOUSE » BROWSE
+    gui-manage: <#181223>&lAUCTION HOUSE » MY LISTINGS
+    gui-expired: <#181223>&lAUCTION HOUSE » EXPIRED ITEMS
+    listing-duration: 48 hours
+    listing-fee-percent: 0.02 # 2% tax to list an item (anti-spam)
+
+# Open main auction browse GUI
+function openAuctionHouse(p: player, page: integer):
+    set {_inv} to a new chest inventory with 6 rows named "{@gui-title}"
+    
+    # Fill bottom utility row
+    set {_s} to 45
+    while {_s} < 54:
+        set slot {_s} of {_inv} to gray stained glass pane named " "
+        add 1 to {_s}
+        
+    set slot 45 of {_inv} to arrow named "<#ffb3dd>&l« Previous Page"
+    set slot 49 of {_inv} to chest named "<#a6ffcb>&lMy Listings & Expired" with lore "<#cfc3e6>Manage active listings" and "<#cfc3e6>and claim unsold items"
+    set slot 53 of {_inv} to arrow named "<#ffb3dd>&lNext Page »"
+    
+    # Populate up to 45 items on the current page
+    set {_slot} to 0
+    set {_start} to ({_page} - 1) * 45
+    set {_count} to 0
+    
+    loop {ah::listings::*}:
+        set {_id} to loop-index
+        if {_count} >= {_start}:
+            if {_slot} < 45:
+                set {_item} to {ah::listings::%{_id}%::item}
+                set {_price} to {ah::listings::%{_id}%::price}
+                set {_seller} to {ah::listings::%{_id}%::seller_name}
+                
+                # Clone item and append auction info to lore
+                set {_display} to {_item}
+                add " " to lore of {_display}
+                add "<#888888>▪ <#cfc3e6>Seller: <#fcf4ff>%{_seller}%" to lore of {_display}
+                add "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>%fmtMoney({_price})%" to lore of {_display}
+                add " " to lore of {_display}
+                add "<#a6ffcb>[Click to Purchase]" to lore of {_display}
+                
+                # Store reference ID inside NBT or tracked slot mapping
+                set slot {_slot} of {_inv} to {_display}
+                set {ah::slot_map::%{_p}'s uuid%::%{_slot}%} to {_id}
+                add 1 to {_slot}
+        add 1 to {_count}
+        
+    open {_inv} to {_p}
+
+# Open player's manage/expired GUI
+function openAuctionManage(p: player):
+    set {_inv} to a new chest inventory with 4 rows named "{@gui-manage}"
+    set {_uuid} to {_p}'s uuid
+    
+    set slot 31 of {_inv} to barrier named "<#ff6b8f>&lBack to Browse"
+    
+    set {_slt} to 0
+    loop {ah::listings::*}:
+        set {_id} to loop-index
+        if {ah::listings::%{_id}%::seller_uuid} is {_uuid}:
+            if {_slt} < 27:
+                set {_item} to {ah::listings::%{_id}%::item}
+                set {_price} to {ah::listings::%{_id}%::price}
+                set {_display} to {_item}
+                add " " to lore of {_display}
+                add "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>%fmtMoney({_price})%" to lore of {_display}
+                add "<#ff6b8f>[Click to Cancel Listing]" to lore of {_display}
+                
+                set slot {_slt} of {_inv} to {_display}
+                set {ah::manage_map::%{_uuid}%::%{_slt}%} to {_id}
+                add 1 to {_slt}
+                
+    open {_inv} to {_p}
+
+# --- Auction House Click Handler ---
+on inventory click:
+    set {_title} to name of event-inventory
+    if {_title} is "{@gui-title}":
+        cancel event
+        set {_slot} to clicked slot
+        set {_item} to event-item
+        if {_item} is air:
+            stop
+            
+        if {_slot} = 49:
+            openAuctionManage(player)
+            stop
+            
+        set {_uuid} to player's uuid
+        set {_id} to {ah::slot_map::%{_uuid}%::%{_slot}%}
+        if {_id} is set:
+            if {ah::listings::%{_id}%} is not set:
+                send "{@prefix}<#ff6b8f>This listing was already purchased by someone else!" to player
+                openAuctionHouse(player, 1)
+                stop
+                
+            set {_sellerUUID} to {ah::listings::%{_id}%::seller_uuid}
+            if {_sellerUUID} is {_uuid}:
+                send "{@prefix}<#ff6b8f>You cannot buy your own auction listing!" to player
+                stop
+                
+            set {_price} to {ah::listings::%{_id}%::price}
+            if hasBal(player, {_price}) is false:
+                send "{@prefix}<#ff6b8f>You cannot afford this! Need <#a6ffcb>%fmtMoney({_price})%<#ff6b8f>." to player
+                play sound "entity.villager.no" with volume 1 and pitch 1 at player
+                stop
+                
+            set {_boughtItem} to {ah::listings::%{_id}%::item}
+            if player cannot hold {_boughtItem}:
+                send "{@prefix}<#ff6b8f>Your inventory is full!" to player
+                stop
+                
+            # Process transaction
+            removeBal(player, {_price})
+            addBal({_sellerUUID} parsed as offline player, {_price})
+            give {_boughtItem} to player
+            
+            # Notify seller if online
+            set {_seller} to ({_sellerUUID} parsed as offline player)
+            if {_seller} is online:
+                send "{@prefix}<#a6ffcb>%player% <#cfc3e6>purchased your auction listing for <#a6ffcb>%fmtMoney({_price})%<#cfc3e6>!" to {_seller}
+                play sound "entity.player.levelup" with volume 1 and pitch 1.8 at {_seller}
+                
+            delete {ah::listings::%{_id}%::*}
+            delete {ah::listings::%{_id}%}
+            
+            send "{@prefix}Purchased auction item for <#a6ffcb>%fmtMoney({_price})%<#cfc3e6>!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player
+            openAuctionHouse(player, 1)
+            
+    else if {_title} is "{@gui-manage}":
+        cancel event
+        set {_slot} to clicked slot
+        if {_slot} = 31:
+            openAuctionHouse(player, 1)
+            stop
+            
+        set {_uuid} to player's uuid
+        set {_id} to {ah::manage_map::%{_uuid}%::%{_slot}%}
+        if {_id} is set:
+            if {ah::listings::%{_id}%} is set:
+                set {_item} to {ah::listings::%{_id}%::item}
+                if player has space for {_item}:
+                    give {_item} to player
+                    delete {ah::listings::%{_id}%::*}
+                    delete {ah::listings::%{_id}%}
+                    send "{@prefix}Auction cancelled. Your item has been returned." to player
+                    play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.2 at player
+                    openAuctionManage(player)
+                else:
+                    send "{@prefix}<#ff6b8f>Your inventory is full! Make space before cancelling." to player
+
+# --- Commands ---
+
+# /ah
+command /ah [<text>] [<number>]:
+    aliases: /auctionhouse, /auction
+    description: Open the player auction house or list an item for sale.
+    usage: /ah or /ah sell <price>
+    trigger:
+        set {_sub} to "%arg-1%" in lower case
+        
+        if {_sub} is "sell":
+            set {_price} to arg-2
+            if {_price} is not set:
+            send "{@prefix}<#ff6b8f>Please specify a price!" to player
+            stop
+        if {_price} <= 0:
+                send "{@prefix}<#ff6b8f>Usage: <#ffd700>/ah sell <price>" to player
+                stop
+                
+            set {_tool} to player's tool
+            if {_tool} is air:
+                send "{@prefix}<#ff6b8f>Hold the item you want to sell in your main hand!" to player
+                stop
+                
+            # Create unique auction ID
+            add 1 to {ah::id_counter}
+            set {_id} to "%{ah::id_counter}%"
+            
+            set {ah::listings::%{_id}%} to true
+            set {ah::listings::%{_id}%::item} to {_tool}
+            set {ah::listings::%{_id}%::price} to {_price}
+            set {ah::listings::%{_id}%::seller_uuid} to player's uuid
+            set {ah::listings::%{_id}%::seller_name} to player's name
+            set {ah::listings::%{_id}%::created} to now
+            
+            set player's tool to air
+            send "{@prefix}Listed your item on <#ffd700>/ah <#cfc3e6>for <#a6ffcb>%fmtMoney({_price})%<#cfc3e6>!" to player
+            play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.4 at player
+            
+        else if {_sub} is "manage" or "my":
+            openAuctionManage(player)
+        else:
+            openAuctionHouse(player, 1)

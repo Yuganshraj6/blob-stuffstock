@@ -1,0 +1,62 @@
+# ==============================================================================
+# Script: dailyrewards.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Daily Login Streak Rewards. Players claim scaled cash and item
+#              bonuses that multiply for every consecutive day they log in.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#a6ffcb>&lDAILY REWARD <#888888>» <#cfc3e6>
+    base-reward: 1000 # $1,000 for Day 1
+    streak-multiplier: 500 # +$500 per additional day
+
+# --- Command: /daily (/reward) ---
+command /daily:
+    aliases: /dailyreward, /reward
+    description: Claim your daily login streak cash reward.
+    trigger:
+        set {_uuid} to player's uuid
+        set {_lastClaim} to {daily::last_claim::%{_uuid}%}
+        
+        # Check cooldown (24 hours)
+        if {_lastClaim} is set:
+            if difference between {_lastClaim} and now < 24 hours:
+                set {_diff} to difference between {_lastClaim} and now
+                set {_remaining} to 24 hours - {_diff}
+                send "{@prefix}<#ff6b8f>You already claimed your reward today! Come back in <#ffd700>%{_remaining}%<#ff6b8f>." to player
+                play sound "entity.villager.no" with volume 1 and pitch 1 at player
+                stop
+                
+            # If player didn't claim within 48 hours, reset streak
+            if difference between {_lastClaim} and now > 48 hours:
+                set {daily::streak::%{_uuid}%} to 0
+                send "{@prefix}<#ff6b8f>You missed a day! Your streak has reset to Day 1." to player
+                
+        # Advance streak
+        add 1 to {daily::streak::%{_uuid}%}
+        set {_streak} to {daily::streak::%{_uuid}%}
+        if {_streak} > 7:
+            set {_streak} to 7 # Capped at 7 days streak, repeats Day 7
+            
+        set {daily::last_claim::%{_uuid}%} to now
+        
+        # Calculate reward
+        set {_reward} to {@base-reward} + (({_streak} - 1) * {@streak-multiplier})
+        addBal(player, {_reward})
+        
+        send " " to player
+        send "<#a6ffcb>&lDAILY REWARD CLAIMED!" to player
+        send "<#888888>▪ <#cfc3e6>Login Streak: <#ffd700>Day %{_streak}%/7" to player
+        send "<#888888>▪ <#cfc3e6>Cash Reward: <#a6ffcb>+%fmtMoney({_reward})%" to player
+        
+        # Day 7 Bonus: Netherite Ingot
+        if {_streak} = 7:
+            give 1 of netherite ingot to player
+            send "<#888888>▪ <#ffd700>&lSTREAK BONUS: <#fcf4ff>1x Netherite Ingot!" to player
+            broadcast "{@prefix}<#fcf4ff>%player% <#cfc3e6>reached a <#ffd700>7-Day Daily Streak <#cfc3e6>and won a <#ffd700>Netherite Ingot<#cfc3e6>!"
+            
+        send " " to player
+        play sound "ui.toast.challenge_complete" with volume 1 and pitch 1 at player

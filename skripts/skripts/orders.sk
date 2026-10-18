@@ -1,0 +1,226 @@
+# ==============================================================================
+# Script: orders.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: DonutSMP-style Buy Order Book. Buyers lock money into escrow
+#              to request bulk resources (e.g., "Buying 1,000 Diamonds @ $250").
+#              Sellers can instantly fulfill orders from their inventory for instant cash!
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#a6ffcb>&lORDERS <#888888>» <#cfc3e6>
+    gui-title: <#181223>&lMARKET BUY ORDERS
+
+# Helper to open the global order book GUI
+function openOrderBook(p: player):
+    set {_inv} to a new chest inventory with 6 rows named "{@gui-title}"
+    
+    # Border
+    set {_s} to 45
+    while {_s} < 54:
+        set slot {_s} of {_inv} to gray stained glass pane named " "
+        add 1 to {_s}
+        
+    set slot 49 of {_inv} to book named "<#a6ffcb>&lCreate Buy Order" with lore "<#cfc3e6>Deposit escrow cash to buy items" and "<#888888>Command: /order create <item> <amount> <price>"
+    
+    set {_slot} to 0
+    loop {orders::active::*}:
+        set {_id} to loop-index
+        if {_slot} < 45:
+            set {_itemType} to {orders::%{_id}%::item_type}
+            set {_remaining} to {orders::%{_id}%::amount_remaining}
+            set {_pricePer} to {orders::%{_id}%::price_per_item}
+            set {_buyerName} to {orders::%{_id}%::buyer_name}
+            
+            set {_sample} to 1 of ({_itemType} parsed as item)
+            set {_display} to {_sample} named "<#fcf4ff>&lOrder: %{_itemType}%" with lore "<#888888>▪ <#cfc3e6>Buyer: <#a6ffcb>%{_buyerName}%", "<#888888>▪ <#cfc3e6>Paying: <#a6ffcb>%fmtMoney({_pricePer})%/ea", "<#888888>▪ <#cfc3e6>Needed: <#ffd700>%{_remaining}% items", " ", "<#a6ffcb>[Left-Click] <#cfc3e6>Fulfill 1x" and "<#ffd700>[Right-Click] <#cfc3e6>Fulfill 64x / All in inventory"
+            
+            set slot {_slot} of {_inv} to {_display}
+            set {orders::gui_map::%{_p}'s uuid%::%{_slot}%} to {_id}
+            add 1 to {_slot}
+            
+    open {_inv} to {_p}
+
+# --- Order Book Inventory Click Handler ---
+on inventory click:
+    set {_title} to name of event-inventory
+    if {_title} is "{@gui-title}":
+        cancel event
+        set {_slot} to clicked slot
+        set {_item} to event-item
+        if {_item} is air:
+            stop
+            
+        set {_uuid} to player's uuid
+        set {_id} to {orders::gui_map::%{_uuid}%::%{_slot}%}
+        if {_id} is set:
+            if {orders::active::%{_id}%} is not set:
+                send "{@prefix}<#ff6b8f>This order has already been completed or cancelled." to player
+                openOrderBook(player)
+                stop
+                
+            set {_buyerUUID} to {orders::%{_id}%::buyer_uuid}
+            if {_buyerUUID} is {_uuid}:
+                send "{@prefix}<#ff6b8f>You cannot fulfill your own order! Use <#ffd700>/order cancel %{_id}% <#ff6b8f>to cancel." to player
+                stop
+                
+            set {_itemType} to {orders::%{_id}%::item_type}
+            set {_sampleItem} to 1 of ({_itemType} parsed as item)
+            set {_remaining} to {orders::%{_id}%::amount_remaining}
+            set {_pricePer} to {orders::%{_id}%::price_per_item}
+            
+            # Decide fulfillment amount based on click
+            set {_sellAmount} to 1
+            if click type is right mouse button or right mouse button with shift:
+                set {_sellAmount} to min({_remaining}, 64)
+                
+            # Check player inventory
+            set {_hasCount} to number of {_sampleItem} in player's inventory
+            if {_hasCount} < {_sellAmount}:
+                set {_sellAmount} to {_hasCount}
+                
+            if {_sellAmount} <= 0:
+                send "{@prefix}<#ff6b8f>You don't have any %{_itemType}% in your inventory to fulfill this order!" to player
+                play sound "entity.villager.no" with volume 1 and pitch 1 at player
+                stop
+                
+            # Transfer items and escrow funds
+            remove ({_sellAmount} of {_sampleItem}) from player's inventory
+            set {_payout} to {_sellAmount} * {_pricePer}
+            addBal(player, {_payout})
+            
+            # Deliver items to buyer mailbox/storage
+            add {_sellAmount} to {orders::mailbox::%{_buyerUUID}%::%{_itemType}%}
+            
+            # Deduct from order
+            subtract {_sellAmount} from {orders::%{_id}%::amount_remaining}
+            send "{@prefix}Fulfilled <#ffd700>%{_sellAmount}%x %{_itemType}% <#cfc3e6>for <#a6ffcb>%fmtMoney({_payout})%<#cfc3e6>!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player
+            
+            # If buyer online, send alert
+            set {_buyer} to ({_buyerUUID} parsed as offline player)
+            if {_buyer} is online:
+                send "{@prefix}<#a6ffcb>%player% <#cfc3e6>just fulfilled <#ffd700>%{_sellAmount}%x %{_itemType}% <#cfc3e6>of your order! Type <#a6ffcb>/order claim <#cfc3e6>to collect." to {_buyer}
+                play sound "block.note_block.pling" with volume 1 and pitch 1.8 at {_buyer}
+                
+            # Check if order is completely filled
+            if {orders::%{_id}%::amount_remaining} <= 0:
+                delete {orders::active::%{_id}%}
+                delete {orders::%{_id}%::*}
+                
+            openOrderBook(player)
+
+# --- Commands ---
+
+# /orders - Browse orders
+command /orders:
+    aliases: /orderbook, /buyorders
+    description: Open the DonutSMP player buy orders book.
+    trigger:
+        openOrderBook(player)
+
+# /order create <item> <amount> <price_per>
+command /order <text> [<text>] [<integer>] [<number>]:
+    description: Order book actions.
+    usage: /order <create|claim|cancel> ...
+    trigger:
+        set {_action} to "%arg-1%" in lower case
+        
+        # CREATE ORDER
+        if {_action} is "create":
+            set {_itemText} to arg-2
+            set {_amount} to arg-3
+            set {_pricePer} to arg-4
+            
+            if {_itemText} is not set:
+            send "{@prefix}<#ff6b8f>Usage: /order create <item> <amount> <price>" to player
+            stop
+        if {_amount} is not set:
+            send "{@prefix}<#ff6b8f>Usage: /order create <item> <amount> <price>" to player
+            stop
+        if {_pricePer} is not set:
+                send "{@prefix}Usage: <#a6ffcb>/order create <item_id> <amount> <price_per_item>" to player
+                send "  <#888888>Example: /order create diamond 64 250" to player
+                stop
+                
+            if {_amount} <= 0:
+            send "{@prefix}<#ff6b8f>Amount must be at least 1!" to player
+            stop
+        if {_pricePer} <= 0:
+                send "{@prefix}<#ff6b8f>Amount and price must be greater than 0!" to player
+                stop
+                
+            set {_totalEscrow} to {_amount} * {_pricePer}
+            if hasBal(player, {_totalEscrow}) is false:
+                send "{@prefix}<#ff6b8f>Insufficient funds! You need <#a6ffcb>%fmtMoney({_totalEscrow})% <#ff6b8f>for escrow." to player
+                stop
+                
+            # Deduct funds into escrow
+            removeBal(player, {_totalEscrow})
+            
+            add 1 to {orders::id_counter}
+            set {_id} to "%{orders::id_counter}%"
+            
+            set {orders::active::%{_id}%} to true
+            set {orders::%{_id}%::item_type} to {_itemText}
+            set {orders::%{_id}%::amount_total} to {_amount}
+            set {orders::%{_id}%::amount_remaining} to {_amount}
+            set {orders::%{_id}%::price_per_item} to {_pricePer}
+            set {orders::%{_id}%::buyer_uuid} to player's uuid
+            set {orders::%{_id}%::buyer_name} to player's name
+            set {orders::%{_id}%::escrow_pool} to {_totalEscrow}
+            
+            send "{@prefix}Order <#a6ffcb>##%{_id}% <#cfc3e6>created! Escrow locked: <#a6ffcb>%fmtMoney({_totalEscrow})%<#cfc3e6>." to player
+            play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.4 at player
+            
+        # CLAIM FULFILLED ITEMS
+        else if {_action} is "claim":
+            set {_uuid} to player's uuid
+            set {_claimed} to 0
+            
+            loop {orders::mailbox::%{_uuid}%::*}:
+                set {_itemType} to loop-index
+                set {_count} to loop-value
+                if {_count} > 0:
+                    set {_parsedItem} to ({_itemType} parsed as item)
+                    give {_count} of {_parsedItem} to player
+                    add {_count} to {_claimed}
+                    delete {orders::mailbox::%{_uuid}%::%{_itemType}%}
+                    
+            if {_claimed} = 0:
+                send "{@prefix}<#ff6b8f>No pending fulfilled items in your claim box." to player
+            else:
+                send "{@prefix}Claimed <#a6ffcb>%{_claimed}% <#cfc3e6>fulfilled items into your inventory!" to player
+                play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player
+                
+        # CANCEL ORDER
+        else if {_action} is "cancel":
+            set {_id} to arg-2
+            if {_id} is not set:
+                send "{@prefix}Usage: <#a6ffcb>/order cancel <order_id>" to player
+                stop
+                
+            if {orders::active::%{_id}%} is not set:
+                send "{@prefix}<#ff6b8f>Order ##%{_id}% not found or already completed." to player
+                stop
+                
+            set {_buyerUUID} to {orders::%{_id}%::buyer_uuid}
+            if {_buyerUUID} is not player's uuid:
+                send "{@prefix}<#ff6b8f>You are not the creator of this order!" to player
+                stop
+                
+            # Refund remaining escrow
+            set {_remaining} to {orders::%{_id}%::amount_remaining}
+            set {_pricePer} to {orders::%{_id}%::price_per_item}
+            set {_refund} to {_remaining} * {_pricePer}
+            addBal(player, {_refund})
+            
+            delete {orders::active::%{_id}%}
+            delete {orders::%{_id}%::*}
+            
+            send "{@prefix}Cancelled order <#a6ffcb>##%{_id}%<#cfc3e6>. Refunded <#a6ffcb>%fmtMoney({_refund})% <#cfc3e6>from escrow." to player
+            play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.2 at player
+        else:
+            openOrderBook(player)

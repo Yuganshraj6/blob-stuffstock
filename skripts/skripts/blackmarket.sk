@@ -1,0 +1,72 @@
+# ==============================================================================
+# Script: blackmarket.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Timed Smuggler Black Market. Appears periodically with high-end
+#              rare goods at premium prices to serve as a server money sink.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ff6b8f>&lBLACK MARKET <#888888>» <#cfc3e6>
+    gui-title: <#181223>&lTHE SMUGGLER'S BLACK MARKET
+
+# Open Black Market GUI
+function openBlackMarket(p: player):
+    set {_inv} to a new chest inventory with 3 rows named "{@gui-title}"
+    
+    # Border
+    set {_s} to 0
+    while {_s} < 27:
+        set slot {_s} of {_inv} to black stained glass pane named " "
+        add 1 to {_s}
+        
+    set slot 11 of {_inv} to enchanted golden apple named "<#ffd700>&lEnchanted Golden Apple" with lore "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>$50,000", "<#888888>Smuggled contraband", " " and "<#a6ffcb>[Click to Buy]"
+    set slot 13 of {_inv} to netherite block named "<#c3a6ff>&lNetherite Block" with lore "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>$100,000", "<#888888>Premium structural metal", " " and "<#a6ffcb>[Click to Buy]"
+    set slot 15 of {_inv} to totem of undying named "<#ffb3dd>&lTotem of Undying" with lore "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>$25,000", "<#888888>Extra life in combat", " " and "<#a6ffcb>[Click to Buy]"
+    
+    open {_inv} to {_p}
+
+# Click handling
+on inventory click:
+    if name of event-inventory is "{@gui-title}":
+        cancel event
+        set {_slot} to clicked slot
+        
+        if {_slot} = 11:
+            set {_cost} to 50000
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>You cannot afford this! Need <#a6ffcb>%fmtMoney({_cost})%<#ff6b8f>." to player
+                stop
+            removeBal(player, {_cost})
+            give 1 of enchanted golden apple to player
+            send "{@prefix}Purchased <#ffd700>Enchanted Golden Apple <#cfc3e6>from the Smuggler!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.2 at player
+            
+        else if {_slot} = 13:
+            set {_cost} to 100000
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>You cannot afford this! Need <#a6ffcb>%fmtMoney({_cost})%<#ff6b8f>." to player
+                stop
+            removeBal(player, {_cost})
+            give 1 of netherite block to player
+            send "{@prefix}Purchased <#c3a6ff>Netherite Block <#cfc3e6>from the Smuggler!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.2 at player
+            
+        else if {_slot} = 15:
+            set {_cost} to 25000
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>You cannot afford this! Need <#a6ffcb>%fmtMoney({_cost})%<#ff6b8f>." to player
+                stop
+            removeBal(player, {_cost})
+            give 1 of totem of undying to player
+            send "{@prefix}Purchased <#ffb3dd>Totem of Undying <#cfc3e6>from the Smuggler!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.2 at player
+
+# Command /blackmarket
+command /blackmarket:
+    aliases: /bm
+    description: Open the underground smuggler's black market.
+    trigger:
+        openBlackMarket(player)

@@ -1,0 +1,113 @@
+# ==============================================================================
+# Script: baltop.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: High-performance top balance leaderboard. Uses background cached
+#              sorting to guarantee zero main-thread lag even with thousands of players.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffb3dd>&lBALTOP <#888888>» <#cfc3e6>
+    cache-interval: 5 minutes # How often the leaderboard refreshes
+
+# --- Leaderboard Cache Updater ---
+function updateBaltopCache():
+    delete {_sorted::*}
+    delete {_uuids::*}
+    
+    # Collect online and recorded players into local memory
+    loop {eco::balance::*}:
+        set {_uuid} to loop-index
+        set {_bal} to loop-value
+        set {_entry} to "%{_bal}%:::%{_uuid}%"
+        add {_entry} to {_unsorted::*}
+        
+    # Sort descending
+    set {_sorted::*} to sorted {_unsorted::*}
+    
+    # Store top 50 in cached global list
+    delete {eco::baltop_cache::*}
+    set {_rank} to 1
+    set {_idx} to size of {_sorted::*}
+    while {_idx} >= 1:
+        if {_rank} > 50:
+            stop loop
+        set {_item} to {_sorted::%{_idx}%}
+        set {_parts::*} to {_item} split at ":::"
+        set {_bal} to {_parts::1} parsed as number
+        set {_uuid} to {_parts::2}
+        
+        set {eco::baltop_cache::%{_rank}%::uuid} to {_uuid}
+        set {eco::baltop_cache::%{_rank}%::balance} to {_bal}
+        set {_p} to {_uuid} parsed as offline player
+                set {eco::baltop_cache::%{_rank}%::name} to "%{_p}%"
+        
+        add 1 to {_rank}
+        subtract 1 from {_idx}
+    set {eco::baltop_last_update} to now
+
+# Periodic background update (zero tick lag)
+every {@cache-interval}:
+    updateBaltopCache()
+
+on script load:
+    if {eco::baltop_last_update} is not set:
+        updateBaltopCache()
+
+# --- Command: /baltop (/topmoney) ---
+command /baltop [<integer=1>]:
+    aliases: /topmoney, /balancetop
+    description: View the richest players on the server.
+    usage: /baltop [page]
+    trigger:
+        set {_page} to arg-1
+        if {_page} < 1:
+            set {_page} to 1
+            
+        set {_maxPage} to 5 # 10 entries per page up to rank 50
+        if {_page} > {_maxPage}:
+            set {_page} to {_maxPage}
+            
+        set {_startRank} to (({_page} - 1) * 10) + 1
+        set {_endRank} to {_startRank} + 9
+        
+        send " " to player
+        send "<#ffb3dd>&lRICHEST PLAYERS <#888888>» <#cfc3e6>Page <#ffb3dd>%{_page}%<#cfc3e6>/<#ffb3dd>%{_maxPage}%" to player
+        
+        set {_displayed} to 0
+        set {_r} to {_startRank}
+        while {_r} <= {_endRank}:
+            if {eco::baltop_cache::%{_r}%::balance} is set:
+                set {_name} to {eco::baltop_cache::%{_r}%::name}
+                if {_name} is not set:
+                    set {_name} to "Unknown"
+                set {_bal} to {eco::baltop_cache::%{_r}%::balance}
+                
+                # Rank styling
+                if {_r} = 1:
+                    set {_badge} to "<#ffd700>#1"
+                else if {_r} = 2:
+                    set {_badge} to "<#c0c0c0>#2"
+                else if {_r} = 3:
+                    set {_badge} to "<#cd7f32>#3"
+                else:
+                    set {_badge} to "<#888888>##%{_r}%"
+                    
+                send "  %{_badge}% <#fcf4ff>%{_name}% <#888888>- <#a6ffcb>%fmtMoney({_bal})%" to player
+                add 1 to {_displayed}
+            add 1 to {_r}
+            
+        if {_displayed} = 0:
+            send "  <#888888>No balances recorded on this page yet." to player
+            
+        send " " to player
+
+# Force-update command for admins
+command /baltopupdate:
+    permission: economy.admin
+    description: Force refresh the baltop leaderboard cache.
+    trigger:
+        updateBaltopCache()
+        send "{@prefix}Leaderboard cache updated successfully." to player

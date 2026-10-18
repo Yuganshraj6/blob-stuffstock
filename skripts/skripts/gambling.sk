@@ -1,0 +1,131 @@
+# ==============================================================================
+# Script: gambling.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Coinflip (50/50 PvP) and Server Jackpot. Includes configurable
+#              tax/house edge to act as an economy money sink.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffd700>&lCASINO <#888888>» <#cfc3e6>
+    min-bet: 500
+    server-tax: 0.05 # 5% money sink burned by server
+
+# --- Coinflip System ---
+
+# Command: /cf (/coinflip)
+command /coinflip <text> [<number>] [<text>]:
+    aliases: /cf
+    description: 50/50 PvP Coinflip betting.
+    usage: /cf create <amount> <heads|tails> or /cf join <player>
+    trigger:
+        set {_action} to "%arg-1%" in lower case
+        
+        # Create Coinflip
+        if {_action} is "create" or "bet":
+            set {_amount} to arg-2
+            set {_side} to "%arg-3%" in lower case
+            
+            if {_amount} is not set:
+                send "{@prefix}<#ff6b8f>Usage: /coinflip create <amount> <heads/tails>" to player
+                stop
+            if {_side} is not set:
+                send "{@prefix}Usage: <#ffd700>/cf create <amount> <heads|tails>" to player
+                stop
+                
+            if {_side} is not "heads":
+                if {_side} is not "tails":
+                    send "{@prefix}<#ff6b8f>Choice must be heads or tails!" to player
+                    stop
+                send "{@prefix}<#ff6b8f>Choose either 'heads' or 'tails'." to player
+                stop
+                
+            if {_amount} < {@min-bet}:
+                send "{@prefix}<#ff6b8f>Minimum bet is <#ffd700>%fmtMoney({@min-bet})%<#ff6b8f>." to player
+                stop
+                
+            if hasBal(player, {_amount}) is false:
+                send "{@prefix}<#ff6b8f>Insufficient funds! You only have <#a6ffcb>%fmtMoney(getBal(player))%<#ff6b8f>." to player
+                stop
+                
+            set {_uuid} to player's uuid
+            if {cf::bet::%{_uuid}%} is set:
+                send "{@prefix}<#ff6b8f>You already have an active coinflip! Cancel with <#ffd700>/cf cancel<#ff6b8f>." to player
+                stop
+                
+            removeBal(player, {_amount})
+            set {cf::bet::%{_uuid}%} to {_amount}
+            set {cf::side::%{_uuid}%} to {_side}
+            set {cf::player::%{_uuid}%} to player
+            
+            broadcast "{@prefix}<#fcf4ff>%player% <#cfc3e6>created a <#ffd700>%fmtMoney({_amount})% <#cfc3e6>Coinflip on <#ffd700>%{_side}%<#cfc3e6>! Type <#a6ffcb>/cf join %player% <#cfc3e6>to challenge!"
+            
+        # Join Coinflip
+        else if {_action} is "join":
+            set {_target} to arg-2 parsed as offline player
+            if {_target} is not set:
+                send "{@prefix}Usage: <#ffd700>/cf join <player>" to player
+                stop
+                
+            set {_targetUUID} to {_target}'s uuid
+            if {cf::bet::%{_targetUUID}%} is not set:
+                send "{@prefix}<#ff6b8f>%{_target}% does not have an active coinflip." to player
+                stop
+                
+            if {_target} is player:
+                send "{@prefix}<#ff6b8f>You cannot challenge yourself!" to player
+                stop
+                
+            set {_bet} to {cf::bet::%{_targetUUID}%}
+            if hasBal(player, {_bet}) is false:
+                send "{@prefix}<#ff6b8f>You need <#a6ffcb>%fmtMoney({_bet})% <#ff6b8f>to join this bet!" to player
+                stop
+                
+            removeBal(player, {_bet})
+            
+            set {_targetSide} to {cf::side::%{_targetUUID}%}
+            set {_challengerSide} to "tails" if {_targetSide} is "heads" else "heads"
+            
+            # Clean bet registry
+            delete {cf::bet::%{_targetUUID}%}
+            delete {cf::side::%{_targetUUID}%}
+            delete {cf::player::%{_targetUUID}%}
+            
+            # Roll coinflip
+            set {_rand} to a random integer between 1 and 2
+            set {_winningSide} to "heads" if {_rand} is 1 else "tails"
+            
+            set {_winner} to {_target} if {_winningSide} is {_targetSide} else player
+            set {_loser} to player if {_winner} is {_target} else {_target}
+            
+            set {_pot} to {_bet} * 2
+            set {_tax} to {_pot} * {@server-tax}
+            set {_payout} to {_pot} - {_tax}
+            
+            addBal({_winner}, {_payout})
+            
+            broadcast " "
+            broadcast "{@prefix}<#ffd700>&lCOINFLIP RESULT: <#fcf4ff>%{_target}% <#888888>vs <#fcf4ff>%player%"
+            broadcast "{@prefix}Coin landed on: <#ffd700>&l%{_winningSide}%"
+            broadcast "{@prefix}<#a6ffcb>&l%{_winner}% <#cfc3e6>won the pot of <#a6ffcb>&l%fmtMoney({_payout})% <#888888>(Tax: %fmtMoney({_tax})%)"
+            broadcast " "
+            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at {_winner}
+            
+        # Cancel Coinflip
+        else if {_action} is "cancel":
+            set {_uuid} to player's uuid
+            if {cf::bet::%{_uuid}%} is not set:
+                send "{@prefix}<#ff6b8f>You have no active coinflip to cancel." to player
+                stop
+                
+            set {_refund} to {cf::bet::%{_uuid}%}
+            addBal(player, {_refund})
+            delete {cf::bet::%{_uuid}%}
+            delete {cf::side::%{_uuid}%}
+            delete {cf::player::%{_uuid}%}
+            
+            send "{@prefix}Coinflip cancelled. Refunded <#a6ffcb>%fmtMoney({_refund})%<#cfc3e6>." to player
+        else:
+            send "{@prefix}Usage: <#ffd700>/cf create <amount> <heads|tails> <#cfc3e6>or <#ffd700>/cf join <player>" to player

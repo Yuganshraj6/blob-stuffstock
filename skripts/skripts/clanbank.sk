@@ -1,0 +1,47 @@
+# ==============================================================================
+# Script: clanbank.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Clan & Team Bank Vaults. Deposit and withdraw shared clan funds,
+#              track team wealth, and manage faction assets.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#a6ffcb>&lCLAN BANK <#888888>» <#cfc3e6>
+
+# /clanbank deposit <clan> <amount>
+command /clanbank [<text>] [<text>] [<number>]:
+    aliases: /cb
+    description: Deposit or view shared clan bank funds.
+    usage: /clanbank <deposit|bal> <clan_name> [amount]
+    trigger:
+        set {_action} to "%arg-1%" in lower case
+        set {_clan} to "%arg-2%" in lower case
+        set {_amount} to arg-3
+        
+        if {_clan} is not set:
+            send "{@prefix}Usage: <#a6ffcb>/clanbank <deposit|bal> <clan_name> [amount]" to player
+            stop
+            
+        if {_action} is "deposit" or "dep":
+            if {_amount} <= 0:
+                send "{@prefix}<#ff6b8f>Amount must be greater than 0!" to player
+                stop
+                
+            if hasBal(player, {_amount}) is false:
+                send "{@prefix}<#ff6b8f>Insufficient funds! You only have <#a6ffcb>%fmtMoney(getBal(player))%<#ff6b8f>." to player
+                stop
+                
+            removeBal(player, {_amount})
+            add {_amount} to {clanbank::bal::%{_clan}%}
+            
+            send "{@prefix}Deposited <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>into clan <#ffd700>%{_clan}%<#cfc3e6>'s bank." to player
+            play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.4 at player
+            
+        else if {_action} is "bal" or "balance":
+            set {_bal} to {clanbank::bal::%{_clan}%} ? 0
+            send "{@prefix}Clan <#ffd700>%{_clan}%<#cfc3e6>'s total bank balance: <#a6ffcb>%fmtMoney({_bal})%" to player
+        else:
+            send "{@prefix}Usage: <#a6ffcb>/clanbank <deposit|bal> <clan_name> [amount]" to player

@@ -1,0 +1,104 @@
+# ==============================================================================
+# Script: stockmarket.sk
+# Suite: DonutSMP Economy Series
+# Author: OrbitOmen
+# Version: 1.0.0
+# Description: Simulated Commodity Stock Market. Players buy and sell shares
+#              in mining and farming companies that fluctuate dynamically.
+# Dependencies: Skript 2.8+ (economy_core.sk required)
+# ==============================================================================
+
+options:
+    prefix: <#ffd700>&lSTOCKS <#888888>» <#cfc3e6>
+
+# Initialize default stock prices if not set
+on script load:
+    if {stocks::price::MINING} is not set:
+        set {stocks::price::MINING} to 100.0
+    if {stocks::price::FARMING} is not set:
+        set {stocks::price::FARMING} to 50.0
+    if {stocks::price::NETHER} is not set:
+        set {stocks::price::NETHER} to 250.0
+
+# Price fluctuation engine every 30 minutes
+every 30 minutes:
+    loop {stocks::price::*}:
+        set {_sym} to loop-index
+        set {_cur} to loop-value
+        # Fluctuate -10% to +15%
+        set {_delta} to a random number between -0.10 and 0.15
+        set {_new} to max(10.0, {_cur} * (1.0 + {_delta}))
+        set {stocks::price::%{_sym}%} to {_new}
+    broadcast "{@prefix}Stock market updated! Type <#ffd700>/stocks <#cfc3e6>to view current prices."
+
+# /stocks
+command /stocks [<text>] [<text>] [<integer>]:
+    description: Buy, sell, or view commodity stock shares.
+    usage: /stocks or /stocks buy <symbol> <shares>
+    trigger:
+        set {_action} to "%arg-1%" in lower case
+        set {_sym} to "%arg-2%" in upper case
+        set {_shares} to arg-3
+        set {_uuid} to player's uuid
+        
+        if {_action} is "buy":
+            if {_sym} is not set:
+                send "{@prefix}<#ff6b8f>Usage: /stocks buy/sell <symbol> <shares>" to player
+                stop
+            if {_shares} is not set:
+                send "{@prefix}<#ff6b8f>Please specify the number of shares!" to player
+                stop
+            if {_shares} <= 0:
+                send "{@prefix}Usage: <#ffd700>/stocks buy <MINING|FARMING|NETHER> <shares>" to player
+                stop
+                
+            set {_price} to {stocks::price::%{_sym}%}
+            if {_price} is not set:
+                send "{@prefix}<#ff6b8f>Unknown stock symbol '%{_sym}%'." to player
+                stop
+                
+            set {_cost} to {_price} * {_shares}
+            if hasBal(player, {_cost}) is false:
+                send "{@prefix}<#ff6b8f>Insufficient funds! You need <#a6ffcb>%fmtMoney({_cost})%<#ff6b8f>." to player
+                stop
+                
+            removeBal(player, {_cost})
+            add {_shares} to {stocks::portfolio::%{_uuid}%::%{_sym}%}
+            
+            send "{@prefix}Purchased <#ffd700>%{_shares}%x shares <#cfc3e6>of <#a6ffcb>%{_sym}% <#cfc3e6>for <#a6ffcb>%fmtMoney({_cost})%<#cfc3e6>!" to player
+            play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.4 at player
+            
+        else if {_action} is "sell":
+            if {_sym} is not set:
+                send "{@prefix}<#ff6b8f>Usage: /stocks buy/sell <symbol> <shares>" to player
+                stop
+            if {_shares} is not set:
+                send "{@prefix}<#ff6b8f>Please specify the number of shares!" to player
+                stop
+            if {_shares} <= 0:
+                send "{@prefix}Usage: <#ffd700>/stocks sell <MINING|FARMING|NETHER> <shares>" to player
+                stop
+                
+            set {_owned} to {stocks::portfolio::%{_uuid}%::%{_sym}%} ? 0
+            if {_owned} < {_shares}:
+                send "{@prefix}<#ff6b8f>You only own <#ffd700>%{_owned}% <#ff6b8f>shares of %{_sym}%!" to player
+                stop
+                
+            set {_price} to {stocks::price::%{_sym}%}
+            set {_payout} to {_price} * {_shares}
+            
+            subtract {_shares} from {stocks::portfolio::%{_uuid}%::%{_sym}%}
+            addBal(player, {_payout})
+            
+            send "{@prefix}Sold <#ffd700>%{_shares}%x shares <#cfc3e6>of <#a6ffcb>%{_sym}% <#cfc3e6>for <#a6ffcb>%fmtMoney({_payout})%<#cfc3e6>!" to player
+            play sound "entity.player.levelup" with volume 1 and pitch 1.5 at player
+        else:
+            send " " to player
+            send "<#ffd700>&lCOMMODITIES STOCK EXCHANGE" to player
+            loop {stocks::price::*}:
+                set {_sym} to loop-index
+                set {_p} to loop-value
+                set {_owned} to {stocks::portfolio::%{_uuid}%::%{_sym}%} ? 0
+                send "<#888888>▪ <#cfc3e6>%{_sym}%: <#a6ffcb>%fmtMoney({_p})%/share <#888888>(You own: %{_owned}%)" to player
+            send "  <#cfc3e6>Trade: <#ffd700>/stocks buy <sym> <shares> <#888888>| <#ffd700>/stocks sell <sym> <shares>" to player
+            send " " to player
