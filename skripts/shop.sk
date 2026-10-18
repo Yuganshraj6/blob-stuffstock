@@ -27,9 +27,9 @@ function openMainShop(p: player):
         add 1 to {_slot}
         
     # Category icons
-    set slot 11 of {_inv} to golden hoe named "<#ffd700>&l🌾 Farming Market" with lore "<#cfc3e6>Crops, seeds, food & plants", "<#888888>Click to open category"
-    set slot 13 of {_inv} to diamond pickaxe named "<#a6ffcb>&l⛏ Mining & Ores" with lore "<#cfc3e6>Ores, gems, metals & minerals", "<#888888>Click to open category"
-    set slot 15 of {_inv} to bone named "<#ff6b8f>&l⚔ Mob Drops" with lore "<#cfc3e6>Monster drops & rare components", "<#888888>Click to open category"
+    set slot 11 of {_inv} to golden hoe named "<#ffd700>&l🌾 Farming Market" with lore "<#cfc3e6>Crops, seeds, food & plants" and "<#888888>Click to open category"
+    set slot 13 of {_inv} to diamond pickaxe named "<#a6ffcb>&l⛏ Mining & Ores" with lore "<#cfc3e6>Ores, gems, metals & minerals" and "<#888888>Click to open category"
+    set slot 15 of {_inv} to bone named "<#ff6b8f>&l⚔ Mob Drops" with lore "<#cfc3e6>Monster drops & rare components" and "<#888888>Click to open category"
     
     open {_inv} to {_p}
 
@@ -83,7 +83,7 @@ function renderShopItem(inv: inventory, slt: integer, itm: item, buyPrice: numbe
     if {_name} is "<none>":
         set {_name} to "%type of {_itm}%"
     
-    set slot {_slt} of {_inv} to {_itm} named "<#fcf4ff>&l%{_name}%" with lore "<#888888>▪ <#cfc3e6>Buy (x1): <#a6ffcb>%fmtMoney({_buyPrice})%", "<#888888>▪ <#cfc3e6>Sell (x1): <#ffd700>%fmtMoney({_sellPrice})% <#888888>(Dynamic)", " ", "<#a6ffcb>[Left-Click] <#cfc3e6>Buy 1x", "<#ffd700>[Right-Click] <#cfc3e6>Sell 1x", "<#c3a6ff>[Shift-Click] <#cfc3e6>Buy/Sell 64x"
+    set slot {_slt} of {_inv} to {_itm} named "<#fcf4ff>&l%{_name}%" with lore "<#888888>▪ <#cfc3e6>Buy (x1): <#a6ffcb>%fmtMoney({_buyPrice})%", "<#888888>▪ <#cfc3e6>Sell (x1): <#ffd700>%fmtMoney({_sellPrice})% <#888888>(Dynamic)", " ", "<#a6ffcb>[Left-Click] <#cfc3e6>Buy 1x", "<#ffd700>[Right-Click] <#cfc3e6>Sell 1x" and "<#c3a6ff>[Shift-Click] <#cfc3e6>Buy/Sell 64x"
 
 # --- Shop GUI Click Event ---
 on inventory click:
@@ -91,7 +91,7 @@ on inventory click:
     if {_title} is "{@title-main}" or "{@title-farming}" or "{@title-mining}" or "{@title-mobdrops}":
         cancel event
         set {_slot} to clicked slot
-        set {_item} to clicked item
+        set {_item} to event-item
         if {_item} is air:
             stop
             

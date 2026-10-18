@@ -17,7 +17,7 @@ command /scratchcard [<text>]:
     description: Buy a lottery scratch card.
     usage: /scratchcard <bronze|silver|gold>
     trigger:
-        set {_tier} to lower text of arg-1
+        set {_tier} to "%arg-1%" in lower case
         
         if {_tier} is "bronze":
             set {_cost} to 1000
@@ -25,7 +25,7 @@ command /scratchcard [<text>]:
                 send "{@prefix}<#ff6b8f>You need <#a6ffcb>$1,000 <#ff6b8f>to buy a Bronze card!" to player
                 stop
             removeBal(player, {_cost})
-            give 1 of paper named "<#cd7f32>&lBRONZE SCRATCH CARD" with lore "<#888888>Cost: $1,000", "<#ffd700>[Right-Click] <#cfc3e6>to scratch and reveal prize!" to player
+            give 1 of paper named "<#cd7f32>&lBRONZE SCRATCH CARD" with lore "<#888888>Cost: $1,000" and "<#ffd700>[Right-Click] <#cfc3e6>to scratch and reveal prize!" to player
             send "{@prefix}Purchased a <#cd7f32>Bronze Scratch Card<#cfc3e6>!" to player
             
         else if {_tier} is "silver":
@@ -34,7 +34,7 @@ command /scratchcard [<text>]:
                 send "{@prefix}<#ff6b8f>You need <#a6ffcb>$5,000 <#ff6b8f>to buy a Silver card!" to player
                 stop
             removeBal(player, {_cost})
-            give 1 of paper named "<#c0c0c0>&lSILVER SCRATCH CARD" with lore "<#888888>Cost: $5,000", "<#ffd700>[Right-Click] <#cfc3e6>to scratch and reveal prize!" to player
+            give 1 of paper named "<#c0c0c0>&lSILVER SCRATCH CARD" with lore "<#888888>Cost: $5,000" and "<#ffd700>[Right-Click] <#cfc3e6>to scratch and reveal prize!" to player
             send "{@prefix}Purchased a <#c0c0c0>Silver Scratch Card<#cfc3e6>!" to player
             
         else if {_tier} is "gold":
@@ -43,7 +43,7 @@ command /scratchcard [<text>]:
                 send "{@prefix}<#ff6b8f>You need <#a6ffcb>$25,000 <#ff6b8f>to buy a Gold card!" to player
                 stop
             removeBal(player, {_cost})
-            give 1 of paper named "<#ffd700>&lGOLD SCRATCH CARD" with lore "<#888888>Cost: $25,000", "<#ffd700>[Right-Click] <#cfc3e6>to scratch and reveal prize!" to player
+            give 1 of paper named "<#ffd700>&lGOLD SCRATCH CARD" with lore "<#888888>Cost: $25,000" and "<#ffd700>[Right-Click] <#cfc3e6>to scratch and reveal prize!" to player
             send "{@prefix}Purchased a <#ffd700>Gold Scratch Card<#cfc3e6>!" to player
         else:
             send " " to player
@@ -73,7 +73,11 @@ on right click with paper:
         else if {_roll} > 35:
             set {_mult} to 1 # 20% break even
             
-        set {_base} to 1000 if {_name} contains "BRONZE" else 5000 if {_name} contains "SILVER" else 25000
+        set {_base} to 1000
+        if {_name} contains "SILVER":
+            set {_base} to 5000
+        else if {_name} contains "GOLD":
+            set {_base} to 25000
         set {_payout} to {_base} * {_mult}
         
         if {_payout} > 0:

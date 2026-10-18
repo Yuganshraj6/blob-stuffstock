@@ -21,13 +21,15 @@ on sign change:
     if line 1 is "[Shop]" or "[shop]":
         set line 1 to "<#a6ffcb>&l[SHOP]"
         set {_amount} to line 2 parsed as integer
-        if {_amount} is not set or {_amount} <= 0:
+        if {_amount} is not set:
+            stop
+        if {_amount} <= 0:
             set line 2 to "1"
         set {_owner} to player
         set line 4 to "%type of player's tool%" if line 4 is not set else line 4
         send "{@prefix}Chest shop registered! Ensure your chest has items and stock." to player
 
-on right click on sign:
+on right click on any sign:
     if line 1 is "<#a6ffcb>&l[SHOP]":
         set {_amount} to line 2 parsed as integer
         set {_prices::*} to line 3 split at ":"

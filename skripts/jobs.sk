@@ -22,10 +22,10 @@ function openJobsGUI(p: player):
         set slot {_s} of {_inv} to gray stained glass pane named " "
         add 1 to {_s}
         
-    set slot 10 of {_inv} to diamond pickaxe named "<#a6ffcb>&l⛏ Miner" with lore "<#cfc3e6>Earn money by mining ores", "<#888888>Payouts: $5 - $250 per ore", " ", "<#a6ffcb>[Click to Join]"
-    set slot 12 of {_inv} to diamond axe named "<#ffd700>&l🪓 Woodcutter" with lore "<#cfc3e6>Earn money chopping trees", "<#888888>Payouts: $3 - $10 per log", " ", "<#a6ffcb>[Click to Join]"
-    set slot 14 of {_inv} to golden hoe named "<#ffb3dd>&l🌾 Farmer" with lore "<#cfc3e6>Earn money harvesting crops", "<#888888>Payouts: $2 - $15 per harvest", " ", "<#a6ffcb>[Click to Join]"
-    set slot 16 of {_inv} to diamond sword named "<#ff6b8f>&l⚔ Hunter" with lore "<#cfc3e6>Earn money slaying monsters", "<#888888>Payouts: $5 - $50 per kill", " ", "<#a6ffcb>[Click to Join]"
+    set slot 10 of {_inv} to diamond pickaxe named "<#a6ffcb>&l⛏ Miner" with lore "<#cfc3e6>Earn money by mining ores", "<#888888>Payouts: $5 - $250 per ore", " " and "<#a6ffcb>[Click to Join]"
+    set slot 12 of {_inv} to diamond axe named "<#ffd700>&l🪓 Woodcutter" with lore "<#cfc3e6>Earn money chopping trees", "<#888888>Payouts: $3 - $10 per log", " " and "<#a6ffcb>[Click to Join]"
+    set slot 14 of {_inv} to golden hoe named "<#ffb3dd>&l🌾 Farmer" with lore "<#cfc3e6>Earn money harvesting crops", "<#888888>Payouts: $2 - $15 per harvest", " " and "<#a6ffcb>[Click to Join]"
+    set slot 16 of {_inv} to diamond sword named "<#ff6b8f>&l⚔ Hunter" with lore "<#cfc3e6>Earn money slaying monsters", "<#888888>Payouts: $5 - $50 per kill", " " and "<#a6ffcb>[Click to Join]"
     
     open {_inv} to {_p}
 
@@ -61,7 +61,7 @@ on inventory click:
 
 # MINER: On block break
 on break:
-    player is survival
+    player's gamemode is survival
     set {_uuid} to player's uuid
     if {jobs::current::%{_uuid}%} is "Miner":
         set {_payout} to 0
@@ -82,10 +82,10 @@ on break:
 
 # WOODCUTTER: On log break
 on break:
-    player is survival
+    player's gamemode is survival
     set {_uuid} to player's uuid
     if {jobs::current::%{_uuid}%} is "Woodcutter":
-        if event-block is any log:
+        if "%event-block%" contains "log" or "%event-block%" contains "wood":
             addBal(player, 4.0)
             send action bar "<#ffd700>&lWoodcutter: <#cfc3e6>Chopped log <#a6ffcb>+$4.00" to player
 

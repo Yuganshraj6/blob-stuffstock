@@ -23,7 +23,7 @@ function openBountiesGUI(p: player):
         set slot {_s} of {_inv} to gray stained glass pane named " "
         add 1 to {_s}
         
-    set slot 40 of {_inv} to netherite sword named "<#ff6b8f>&lPlace a Bounty" with lore "<#cfc3e6>Hunt your rivals for cash!", "<#888888>Command: /bounty <player> <amount>"
+    set slot 40 of {_inv} to netherite sword named "<#ff6b8f>&lPlace a Bounty" with lore "<#cfc3e6>Hunt your rivals for cash!" and "<#888888>Command: /bounty <player> <amount>"
     
     set {_slot} to 0
     loop {bounty::pool::*}:
@@ -32,7 +32,7 @@ function openBountiesGUI(p: player):
         if {_amount} > 0:
             if {_slot} < 36:
                 set {_targetPlayer} to ({_targetUUID} parsed as offline player)
-                set {_skull} to skull of {_targetPlayer} named "<#ff6b8f>&l%{_targetPlayer}%" with lore "<#888888>▪ <#cfc3e6>Bounty: <#ffd700>%fmtMoney({_amount})%", "<#888888>▪ <#cfc3e6>Status: %{_targetPlayer} is online ? '<#a6ffcb>Online' : '<#888888>Offline'%", " ", "<#ff6b8f>Eliminate this player to claim!"
+                set {_skull} to skull of {_targetPlayer} named "<#ff6b8f>&l%{_targetPlayer}%" with lore "<#888888>▪ <#cfc3e6>Bounty: <#ffd700>%fmtMoney({_amount})%", "<#888888>▪ <#cfc3e6>Status: %{_targetPlayer} is online ? '<#a6ffcb>Online' : '<#888888>Offline'%", " " and "<#ff6b8f>Eliminate this player to claim!"
                 
                 set slot {_slot} of {_inv} to {_skull}
                 add 1 to {_slot}
@@ -50,14 +50,17 @@ command /bounty [<text>] [<offline player>] [<number>]:
     description: Place or view active bounties on players.
     usage: /bounty [add <player> <amount>]
     trigger:
-        set {_sub} to lower text of arg-1
+        set {_sub} to "%arg-1%" in lower case
         
         # Place bounty
         if {_sub} is "add" or "set" or "place":
             set {_target} to arg-2
             set {_amount} to arg-3
             
-            if {_target} is not set or {_amount} is not set:
+            if {_target} is not set:
+            send "{@prefix}<#ff6b8f>Usage: /bounty add <player> <amount>" to player
+            stop
+        if {_amount} is not set:
                 send "{@prefix}Usage: <#ff6b8f>/bounty add <player> <amount>" to player
                 stop
                 

@@ -16,14 +16,22 @@ command /mail <text> [<offline player>] [<number>] [<text>]:
     description: Send cash gifts or check your delivery mailbox.
     usage: /mail <send|box|claim>
     trigger:
-        set {_action} to lower text of arg-1
+        set {_action} to "%arg-1%" in lower case
         
         if {_action} is "send":
             set {_target} to arg-2
             set {_amount} to arg-3
-            set {_msg} to arg-4 ? "A gift for you!"
+            set {_msg} to arg-4
+            if {_msg} is not set:
+                set {_msg} to "A gift for you!"
             
-            if {_target} is not set or {_amount} is not set or {_amount} <= 0:
+            if {_target} is not set:
+                send "{@prefix}<#ff6b8f>Usage: /mail send <player> <amount> [message]" to player
+                stop
+            if {_amount} is not set:
+                send "{@prefix}<#ff6b8f>Please specify an amount!" to player
+                stop
+            if {_amount} <= 0:
                 send "{@prefix}Usage: <#ffd700>/mail send <player> <amount> [message]" to player
                 stop
                 
@@ -49,7 +57,10 @@ command /mail <text> [<offline player>] [<number>] [<text>]:
             set {_uuid} to player's uuid
             set {_cash} to {mail::pending_cash::%{_uuid}%} ? 0
             
-            if {_cash} <= 0 and size of {mail::messages::%{_uuid}%::*} = 0:
+            if {_cash} <= 0:
+            if size of {mail::messages::%{_uuid}%::*} <= 0:
+                send "{@prefix}<#888888>Your mailbox is currently empty." to player
+                stop
                 send "{@prefix}<#ff6b8f>Your mailbox is currently empty." to player
                 stop
                 

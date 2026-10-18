@@ -17,7 +17,7 @@ function openTradeGUI(p1: player, p2: player):
     set {_inv} to a new chest inventory with 6 rows named "{@gui-title}"
     
     # Separator column in slot 4, 13, 22, 31, 40, 49
-    set {_div::*} to 4, 13, 22, 31, 40, 49
+    set {_div::*} to 4, 13, 22, 31, 40 and 49
     loop {_div::*}:
         set slot loop-value of {_inv} to black stained glass pane named " "
         
@@ -25,13 +25,13 @@ function openTradeGUI(p1: player, p2: player):
     set slot 45 of {_inv} to red wool named "<#ff6b8f>&lClick when Ready" with lore "<#888888>Waiting for your confirmation"
     set slot 53 of {_inv} to red wool named "<#ff6b8f>&lWaiting for Partner" with lore "<#888888>Partner has not confirmed yet"
     
-    set {trade::session::%p1's uuid%} to p2
-    set {trade::session::%p2's uuid%} to p1
-    set {trade::ready::%p1's uuid%} to false
-    set {trade::ready::%p2's uuid%} to false
+    set {trade::session::%{_p1}'s uuid%} to p2
+    set {trade::session::%{_p2}'s uuid%} to p1
+    set {trade::ready::%{_p1}'s uuid%} to false
+    set {trade::ready::%{_p2}'s uuid%} to false
     
-    open {_inv} to p1
-    open {_inv} to p2
+    open {_inv} to {_p1}
+    open {_inv} to {_p2}
 
 # Command /trade
 command /trade <player>:

@@ -36,13 +36,19 @@ command /stocks [<text>] [<text>] [<integer>]:
     description: Buy, sell, or view commodity stock shares.
     usage: /stocks or /stocks buy <symbol> <shares>
     trigger:
-        set {_action} to lower text of arg-1
-        set {_sym} to upper text of arg-2
+        set {_action} to "%arg-1%" in lower case
+        set {_sym} to "%arg-2%" in upper case
         set {_shares} to arg-3
         set {_uuid} to player's uuid
         
         if {_action} is "buy":
-            if {_sym} is not set or {_shares} is not set or {_shares} <= 0:
+            if {_sym} is not set:
+                send "{@prefix}<#ff6b8f>Usage: /stocks buy/sell <symbol> <shares>" to player
+                stop
+            if {_shares} is not set:
+                send "{@prefix}<#ff6b8f>Please specify the number of shares!" to player
+                stop
+            if {_shares} <= 0:
                 send "{@prefix}Usage: <#ffd700>/stocks buy <MINING|FARMING|NETHER> <shares>" to player
                 stop
                 
@@ -63,7 +69,13 @@ command /stocks [<text>] [<text>] [<integer>]:
             play sound "entity.experience_orb.pickup" with volume 1 and pitch 1.4 at player
             
         else if {_action} is "sell":
-            if {_sym} is not set or {_shares} is not set or {_shares} <= 0:
+            if {_sym} is not set:
+                send "{@prefix}<#ff6b8f>Usage: /stocks buy/sell <symbol> <shares>" to player
+                stop
+            if {_shares} is not set:
+                send "{@prefix}<#ff6b8f>Please specify the number of shares!" to player
+                stop
+            if {_shares} <= 0:
                 send "{@prefix}Usage: <#ffd700>/stocks sell <MINING|FARMING|NETHER> <shares>" to player
                 stop
                 

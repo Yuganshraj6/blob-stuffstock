@@ -21,12 +21,12 @@ command /sellchest:
             send "{@prefix}<#ff6b8f>You need <#a6ffcb>%fmtMoney({@chest-cost})% <#ff6b8f>to buy an Auto-Sell Chest." to player
             stop
             
-        if player does not have space for 1 of chest:
+        if player cannot hold 1 of chest:
             send "{@prefix}<#ff6b8f>Your inventory is full!" to player
             stop
             
         removeBal(player, {@chest-cost})
-        set {_c} to chest named "<#ffd700>&lAUTO-SELL CHEST" with lore "<#cfc3e6>Automatically sells items", "<#cfc3e6>placed inside every 30s", "<#888888>Owner: %player%"
+        set {_c} to chest named "<#ffd700>&lAUTO-SELL CHEST" with lore "<#cfc3e6>Automatically sells items", "<#cfc3e6>placed inside every 30s" and "<#888888>Owner: %player%"
         give 1 of {_c} to player
         
         send "{@prefix}Purchased an <#ffd700>Auto-Sell Chest <#cfc3e6>for <#a6ffcb>%fmtMoney({@chest-cost})%<#cfc3e6>!" to player
@@ -54,13 +54,13 @@ on break of chest:
                 
         delete {sellchests::active::%{_loc}%}
         cancel drops
-        drop 1 of (chest named "<#ffd700>&lAUTO-SELL CHEST" with lore "<#cfc3e6>Automatically sells items", "<#cfc3e6>placed inside every 30s") at {_loc}
+        drop 1 of (chest named "<#ffd700>&lAUTO-SELL CHEST" with lore "<#cfc3e6>Automatically sells items" and "<#cfc3e6>placed inside every 30s") at {_loc}
         send "{@prefix}Auto-Sell Chest broken and recovered." to player
 
 # Periodic sell engine for all active sell chests
 every {@check-interval}:
     loop {sellchests::active::*}:
-        set {_loc} to loop-index parsed as location
+        set {_loc} to "%loop-index%" parsed as location
         set {_ownerUUID} to loop-value
         set {_inv} to inventory of block at {_loc}
         

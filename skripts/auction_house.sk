@@ -28,7 +28,7 @@ function openAuctionHouse(p: player, page: integer):
         add 1 to {_s}
         
     set slot 45 of {_inv} to arrow named "<#ffb3dd>&l« Previous Page"
-    set slot 49 of {_inv} to chest named "<#a6ffcb>&lMy Listings & Expired" with lore "<#cfc3e6>Manage active listings", "<#cfc3e6>and claim unsold items"
+    set slot 49 of {_inv} to chest named "<#a6ffcb>&lMy Listings & Expired" with lore "<#cfc3e6>Manage active listings" and "<#cfc3e6>and claim unsold items"
     set slot 53 of {_inv} to arrow named "<#ffb3dd>&lNext Page »"
     
     # Populate up to 45 items on the current page
@@ -91,7 +91,7 @@ on inventory click:
     if {_title} is "{@gui-title}":
         cancel event
         set {_slot} to clicked slot
-        set {_item} to clicked item
+        set {_item} to event-item
         if {_item} is air:
             stop
             
@@ -119,7 +119,7 @@ on inventory click:
                 stop
                 
             set {_boughtItem} to {ah::listings::%{_id}%::item}
-            if player does not have space for {_boughtItem}:
+            if player cannot hold {_boughtItem}:
                 send "{@prefix}<#ff6b8f>Your inventory is full!" to player
                 stop
                 
@@ -171,11 +171,14 @@ command /ah [<text>] [<number>]:
     description: Open the player auction house or list an item for sale.
     usage: /ah or /ah sell <price>
     trigger:
-        set {_sub} to lower text of arg-1
+        set {_sub} to "%arg-1%" in lower case
         
         if {_sub} is "sell":
             set {_price} to arg-2
-            if {_price} is not set or {_price} <= 0:
+            if {_price} is not set:
+            send "{@prefix}<#ff6b8f>Please specify a price!" to player
+            stop
+        if {_price} <= 0:
                 send "{@prefix}<#ff6b8f>Usage: <#ffd700>/ah sell <price>" to player
                 stop
                 

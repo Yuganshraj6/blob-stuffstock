@@ -33,14 +33,14 @@ command /withdraw <number>:
             send "{@prefix}<#ff6b8f>Insufficient funds! You only have <#a6ffcb>%fmtMoney(getBal(player))%<#ff6b8f>." to player
             stop
             
-        if player does not have space for 1 of paper:
+        if player cannot hold 1 of paper:
             send "{@prefix}<#ff6b8f>Your inventory is full!" to player
             stop
             
         removeBal(player, {_amount})
         
         # Create unique physical banknote
-        set {_note} to paper named "<#ffd700>&lBANKNOTE <#888888>• <#a6ffcb>%fmtMoney({_amount})%" with lore "<#888888>▪ <#cfc3e6>Value: <#a6ffcb>%fmtMoney({_amount})% <#888888>(%{_amount}%)", "<#888888>▪ <#cfc3e6>Signer: <#fcf4ff>%player%", "<#888888>▪ <#cfc3e6>Issued: <#888888>%now%", " ", "<#ffd700>[Right-Click] <#cfc3e6>to deposit into balance"
+        set {_note} to paper named "<#ffd700>&lBANKNOTE <#888888>• <#a6ffcb>%fmtMoney({_amount})%" with lore "<#888888>▪ <#cfc3e6>Value: <#a6ffcb>%fmtMoney({_amount})% <#888888>(%{_amount}%)", "<#888888>▪ <#cfc3e6>Signer: <#fcf4ff>%player%", "<#888888>▪ <#cfc3e6>Issued: <#888888>%now%", " " and "<#ffd700>[Right-Click] <#cfc3e6>to deposit into balance"
         
         give 1 of {_note} to player
         send "{@prefix}Withdrew <#a6ffcb>%fmtMoney({_amount})% <#cfc3e6>into a physical banknote." to player
@@ -60,7 +60,10 @@ on right click with paper:
         set {_subParts::*} to {_parts::2} split at ")"
         set {_amount} to {_subParts::1} parsed as number
         
-        if {_amount} is not set or {_amount} <= 0:
+        if {_amount} is not set:
+            send "{@prefix}<#ff6b8f>Invalid or counterfeit banknote!" to player
+            stop
+        if {_amount} <= 0:
             send "{@prefix}<#ff6b8f>Invalid or counterfeit banknote!" to player
             stop
             

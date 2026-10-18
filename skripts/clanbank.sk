@@ -17,8 +17,8 @@ command /clanbank [<text>] [<text>] [<number>]:
     description: Deposit or view shared clan bank funds.
     usage: /clanbank <deposit|bal> <clan_name> [amount]
     trigger:
-        set {_action} to lower text of arg-1
-        set {_clan} to lower text of arg-2
+        set {_action} to "%arg-1%" in lower case
+        set {_clan} to "%arg-2%" in lower case
         set {_amount} to arg-3
         
         if {_clan} is not set:

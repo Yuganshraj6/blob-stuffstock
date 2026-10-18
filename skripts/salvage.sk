@@ -24,16 +24,12 @@ command /salvage [<text=hand>]:
         set {_type} to "%type of {_tool}%"
         set {_refund} to 0
         
-        # Netherite tier
         if {_type} contains "netherite":
             set {_refund} to 2500
-        # Diamond tier
         else if {_type} contains "diamond":
             set {_refund} to 500
-        # Iron tier
         else if {_type} contains "iron":
             set {_refund} to 75
-        # Gold tier
         else if {_type} contains "golden" or {_type} contains "gold":
             set {_refund} to 40
         else:

@@ -41,7 +41,8 @@ function updateBaltopCache():
         
         set {eco::baltop_cache::%{_rank}%::uuid} to {_uuid}
         set {eco::baltop_cache::%{_rank}%::balance} to {_bal}
-        set {eco::baltop_cache::%{_rank}%::name} to ({_uuid} parsed as offline player).getName()
+        set {_p} to {_uuid} parsed as offline player
+                set {eco::baltop_cache::%{_rank}%::name} to "%{_p}%"
         
         add 1 to {_rank}
         subtract 1 from {_idx}

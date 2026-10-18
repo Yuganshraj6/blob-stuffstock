@@ -22,9 +22,9 @@ function openBlackMarket(p: player):
         set slot {_s} of {_inv} to black stained glass pane named " "
         add 1 to {_s}
         
-    set slot 11 of {_inv} to enchanted golden apple named "<#ffd700>&lEnchanted Golden Apple" with lore "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>$50,000", "<#888888>Smuggled contraband", " ", "<#a6ffcb>[Click to Buy]"
-    set slot 13 of {_inv} to netherite block named "<#c3a6ff>&lNetherite Block" with lore "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>$100,000", "<#888888>Premium structural metal", " ", "<#a6ffcb>[Click to Buy]"
-    set slot 15 of {_inv} to totem of undying named "<#ffb3dd>&lTotem of Undying" with lore "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>$25,000", "<#888888>Extra life in combat", " ", "<#a6ffcb>[Click to Buy]"
+    set slot 11 of {_inv} to enchanted golden apple named "<#ffd700>&lEnchanted Golden Apple" with lore "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>$50,000", "<#888888>Smuggled contraband", " " and "<#a6ffcb>[Click to Buy]"
+    set slot 13 of {_inv} to netherite block named "<#c3a6ff>&lNetherite Block" with lore "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>$100,000", "<#888888>Premium structural metal", " " and "<#a6ffcb>[Click to Buy]"
+    set slot 15 of {_inv} to totem of undying named "<#ffb3dd>&lTotem of Undying" with lore "<#888888>▪ <#cfc3e6>Price: <#a6ffcb>$25,000", "<#888888>Extra life in combat", " " and "<#a6ffcb>[Click to Buy]"
     
     open {_inv} to {_p}
 

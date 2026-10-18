@@ -102,7 +102,7 @@ command /sell [<text=hand>]:
     description: Sell the item held in your main hand or your entire inventory.
     usage: /sell [hand|all]
     trigger:
-        set {_mode} to lower text of arg-1
+        set {_mode} to "%arg-1%" in lower case
         
         # Sells current hand item
         if {_mode} is "hand":
@@ -175,7 +175,7 @@ command /prices [<text>]:
     description: View the current dynamic market price and saturation for an item.
     trigger:
         if arg-1 is set:
-            set {_key} to lower text of arg-1
+            set {_key} to "%arg-1%" in lower case
             set {_price} to getDynamicPrice({_key})
             if {_price} <= 0:
                 send "{@prefix}<#ff6b8f>No dynamic pricing data found for '%{_key}%'." to player

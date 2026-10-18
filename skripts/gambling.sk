@@ -21,18 +21,24 @@ command /coinflip <text> [<number>] [<text>]:
     description: 50/50 PvP Coinflip betting.
     usage: /cf create <amount> <heads|tails> or /cf join <player>
     trigger:
-        set {_action} to lower text of arg-1
+        set {_action} to "%arg-1%" in lower case
         
         # Create Coinflip
         if {_action} is "create" or "bet":
             set {_amount} to arg-2
-            set {_side} to lower text of arg-3
+            set {_side} to "%arg-3%" in lower case
             
-            if {_amount} is not set or {_side} is not set:
+            if {_amount} is not set:
+                send "{@prefix}<#ff6b8f>Usage: /coinflip create <amount> <heads/tails>" to player
+                stop
+            if {_side} is not set:
                 send "{@prefix}Usage: <#ffd700>/cf create <amount> <heads|tails>" to player
                 stop
                 
-            if {_side} is not "heads" and {_side} is not "tails":
+            if {_side} is not "heads":
+                if {_side} is not "tails":
+                    send "{@prefix}<#ff6b8f>Choice must be heads or tails!" to player
+                    stop
                 send "{@prefix}<#ff6b8f>Choose either 'heads' or 'tails'." to player
                 stop
                 

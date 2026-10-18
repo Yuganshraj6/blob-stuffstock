@@ -23,7 +23,7 @@ function openOrderBook(p: player):
         set slot {_s} of {_inv} to gray stained glass pane named " "
         add 1 to {_s}
         
-    set slot 49 of {_inv} to book named "<#a6ffcb>&lCreate Buy Order" with lore "<#cfc3e6>Deposit escrow cash to buy items", "<#888888>Command: /order create <item> <amount> <price>"
+    set slot 49 of {_inv} to book named "<#a6ffcb>&lCreate Buy Order" with lore "<#cfc3e6>Deposit escrow cash to buy items" and "<#888888>Command: /order create <item> <amount> <price>"
     
     set {_slot} to 0
     loop {orders::active::*}:
@@ -35,7 +35,7 @@ function openOrderBook(p: player):
             set {_buyerName} to {orders::%{_id}%::buyer_name}
             
             set {_sample} to 1 of ({_itemType} parsed as item)
-            set {_display} to {_sample} named "<#fcf4ff>&lOrder: %{_itemType}%" with lore "<#888888>▪ <#cfc3e6>Buyer: <#a6ffcb>%{_buyerName}%", "<#888888>▪ <#cfc3e6>Paying: <#a6ffcb>%fmtMoney({_pricePer})%/ea", "<#888888>▪ <#cfc3e6>Needed: <#ffd700>%{_remaining}% items", " ", "<#a6ffcb>[Left-Click] <#cfc3e6>Fulfill 1x", "<#ffd700>[Right-Click] <#cfc3e6>Fulfill 64x / All in inventory"
+            set {_display} to {_sample} named "<#fcf4ff>&lOrder: %{_itemType}%" with lore "<#888888>▪ <#cfc3e6>Buyer: <#a6ffcb>%{_buyerName}%", "<#888888>▪ <#cfc3e6>Paying: <#a6ffcb>%fmtMoney({_pricePer})%/ea", "<#888888>▪ <#cfc3e6>Needed: <#ffd700>%{_remaining}% items", " ", "<#a6ffcb>[Left-Click] <#cfc3e6>Fulfill 1x" and "<#ffd700>[Right-Click] <#cfc3e6>Fulfill 64x / All in inventory"
             
             set slot {_slot} of {_inv} to {_display}
             set {orders::gui_map::%{_p}'s uuid%::%{_slot}%} to {_id}
@@ -49,7 +49,7 @@ on inventory click:
     if {_title} is "{@gui-title}":
         cancel event
         set {_slot} to clicked slot
-        set {_item} to clicked item
+        set {_item} to event-item
         if {_item} is air:
             stop
             
@@ -126,7 +126,7 @@ command /order <text> [<text>] [<integer>] [<number>]:
     description: Order book actions.
     usage: /order <create|claim|cancel> ...
     trigger:
-        set {_action} to lower text of arg-1
+        set {_action} to "%arg-1%" in lower case
         
         # CREATE ORDER
         if {_action} is "create":
@@ -134,12 +134,21 @@ command /order <text> [<text>] [<integer>] [<number>]:
             set {_amount} to arg-3
             set {_pricePer} to arg-4
             
-            if {_itemText} is not set or {_amount} is not set or {_pricePer} is not set:
+            if {_itemText} is not set:
+            send "{@prefix}<#ff6b8f>Usage: /order create <item> <amount> <price>" to player
+            stop
+        if {_amount} is not set:
+            send "{@prefix}<#ff6b8f>Usage: /order create <item> <amount> <price>" to player
+            stop
+        if {_pricePer} is not set:
                 send "{@prefix}Usage: <#a6ffcb>/order create <item_id> <amount> <price_per_item>" to player
                 send "  <#888888>Example: /order create diamond 64 250" to player
                 stop
                 
-            if {_amount} <= 0 or {_pricePer} <= 0:
+            if {_amount} <= 0:
+            send "{@prefix}<#ff6b8f>Amount must be at least 1!" to player
+            stop
+        if {_pricePer} <= 0:
                 send "{@prefix}<#ff6b8f>Amount and price must be greater than 0!" to player
                 stop
                 

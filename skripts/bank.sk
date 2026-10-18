@@ -25,7 +25,7 @@ command /bank [<text>] [<number>]:
     description: Access your bank account to deposit, withdraw, or view balance.
     usage: /bank [deposit|withdraw] [amount]
     trigger:
-        set {_action} to lower text of arg-1
+        set {_action} to "%arg-1%" in lower case
         set {_amount} to arg-2
         set {_uuid} to player's uuid
         

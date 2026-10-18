@@ -19,7 +19,7 @@ command /jackpot [<text>] [<integer=1>]:
     description: Buy lottery tickets or view the current jackpot pool.
     usage: /jackpot [buy <tickets>]
     trigger:
-        set {_action} to lower text of arg-1
+        set {_action} to "%arg-1%" in lower case
         
         if {_action} is "buy":
             set {_tickets} to arg-2
